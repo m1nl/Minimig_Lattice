@@ -43,8 +43,9 @@ wire [7:0] rtg_clut_idx;
 wire [7:0] rtg_clut_r;
 wire [7:0] rtg_clut_g;
 wire [7:0] rtg_clut_b;
+reg [5:0] rtg_pixelwidth; // Number of clocks per fetch - 1 in indexed mode
 
-reg [31:0] clut[256];
+reg [31:0] clut[0:255];
 reg [31:0] clut_rgb;
 reg [15:0] clut_high; // CLUT entries are written in two consecutive words
 
@@ -86,7 +87,6 @@ end
 
 
 reg [5:0] rtg_pixelctr;	// Counter, compared against rtg_pixelwidth
-reg [5:0] rtg_pixelwidth; // Number of clocks per fetch - 1 in indexed mode
 wire rtg_pixel;	// Strobe the next pixel from the FIFO
 
 reg rtg_vblank;
@@ -184,12 +184,12 @@ end
 
 wire [25:0] fetch_addr_raw;
 
-VideoStream myvs
+VideoStream #(.fifodepth(9),.burstdepth(3),.signalwidth(16)) myvs
 (
 	.clk(clk_114),
 	.reset_n(rtg_reset[0]),
 	.enable(rtg_ena),
-	.baseaddr({rtg_linecompare ? rtg_base2[24:4] : rtg_base[24:4],4'b0}),
+	.baseaddr({rtg_linecompare ? rtg_base2[25:4] : rtg_base[25:4],4'b0}),
 	// SDRAM interface
 	.a(fetch_addr_raw),
 	.req(fetch_req),

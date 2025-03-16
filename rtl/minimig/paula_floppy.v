@@ -336,6 +336,8 @@ always @(posedge qsck or negedge qcs) begin
 	if (~qcs) begin
 		qspi_nibble <= 0;
 		qspi_cmd <= 0;
+		qrx_data<=0;
+		qspi_di_reg<=0;
 	end
 	else
 	begin

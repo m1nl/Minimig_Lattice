@@ -5,7 +5,7 @@ use IEEE.numeric_std.ALL;
 entity video_vga_dither is
 	generic (
 		outbits : integer :=4;
-		flickerreduce : boolean := true
+		flickerreduce : integer := 1
 	);
 	port (
 		clk : in std_logic;
@@ -108,7 +108,7 @@ dither: if outbits<8 generate
 		kernel(1 downto 0) when "11";
 
 	fr1:
-	if flickerreduce=true generate
+	if flickerreduce=1 generate
 	gdither(7 downto 8-outbits)<=(others=>'0');
 	with selkernel select gdither(7-outbits downto 6-outbits) <=
 		not kernel(7 downto 6) when "00",
@@ -118,7 +118,7 @@ dither: if outbits<8 generate
 	end generate;
 
 	fr2:
-	if flickerreduce=false generate
+	if flickerreduce=0 generate
 	gdither(7 downto 8-outbits)<=(others=>'0');
 	with selkernel select gdither(7-outbits downto 6-outbits) <=
 		kernel(7 downto 6) when "00",

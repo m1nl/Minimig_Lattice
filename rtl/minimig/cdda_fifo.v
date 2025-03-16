@@ -40,7 +40,7 @@ module cdda_fifo
 
 // 4k x 16bit default FIFO size
 parameter FIFO_DEPTH = 12;
-reg [15:0] fifo[2**FIFO_DEPTH];
+reg [15:0] fifo[0:2**FIFO_DEPTH-1];
 reg [FIFO_DEPTH-1:0] inptr;
 reg [FIFO_DEPTH-1:0] outptr;
 reg [15:0] fifo_out;

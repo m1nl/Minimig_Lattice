@@ -7,6 +7,7 @@ module denise_hamgenerator
 (
   input  wire           clk,              // 28MHz clock
   input  wire           clk7_en,          // 7MHz clock enable
+  input  wire           reset,
   input  wire [  9-1:1] reg_address_in,   // register adress inputs
   input  wire [ 12-1:0] data_in,          // bus data in
   input  wire [  8-1:0] select,           // colour select input
@@ -38,6 +39,7 @@ reg  [ 8-1:0] select_r;
 denise_colortable_ram_mf clut
 (
   .clock      (clk    ),
+  .reset      (reset  ),
   .enable     (1'b1   ),
   .wraddress  (wr_adr ),
   .wren       (wr_en  ),

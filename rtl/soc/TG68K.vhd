@@ -30,12 +30,12 @@ use ieee.std_logic_unsigned.all;
 entity TG68K is
 generic
 	(
-		havertg : boolean := true;
-		haveaudio : boolean := true;
-		havec2p : boolean := true;
-		havecart : boolean := true;
-		dualsdram : boolean := false;
-		useprofiler : boolean := false
+		havertg : integer := 1;
+		haveaudio : integer := 1;
+		havec2p : integer := 1;
+		havecart : integer := 1;
+		dualsdram : integer := 0;
+		useprofiler : integer := 0
 	);
 port(
 	clk           : in      std_logic;
@@ -209,7 +209,7 @@ sel_eth<='0';
 
 	-- NMI handling for HRTMon cartridge
 	
-	gen_nmi: if havecart=true generate
+	gen_nmi: if havecart=1 generate
 		nmiblock : block
 			SIGNAL NMI_addr         : std_logic_vector(31 downto 0);
 			SIGNAL sel_nmi_vector_addr : std_logic;
@@ -233,7 +233,7 @@ sel_eth<='0';
 		end block;
 	end generate;
 
-	no_nmi: if havecart=false generate
+	no_nmi: if havecart=0 generate
 		sel_nmi_vector <= '0';
 	end generate;
 
@@ -277,7 +277,7 @@ sel_eth<='0';
 		end if;
 	end process;
 
-DUALRAM_ZIII: if dualsdram=true generate
+DUALRAM_ZIII: if dualsdram=1 generate
 -- First block of ZIII RAM - 0x40000000 - 0x43ffffff
 	sel_z3ram       <= '1' WHEN (cpuaddr(31 downto 30)="01") and cpuaddr(26)='0' else '0';
 -- Second block of ZIII RAM - 32 meg from 0x44000000 - 0x45ffffff
@@ -287,7 +287,7 @@ DUALRAM_ZIII: if dualsdram=true generate
 	sel_z3ram3      <= '0'; -- '1' WHEN (cpuaddr(31 downto 30)="01") and (cpuaddr(26)='1' or cpuaddr(24)='1') else '0'; 
 end generate;
 
-SINGLERAM_ZIII: if dualsdram=false generate
+SINGLERAM_ZIII: if dualsdram=0 generate
 -- First block of ZIII RAM - 0x40000000 - 0x40ffffff
 	sel_z3ram       <= '1' WHEN (cpuaddr(31 downto 30)="01") and cpuaddr(26 downto 24)="000" else '0'; -- AND z3ram_ena='1' ELSE '0';
 -- Second block of ZIII RAM - 32 meg from 0x42000000 - 0x43ffffff
@@ -296,7 +296,7 @@ SINGLERAM_ZIII: if dualsdram=false generate
 	sel_z3ram3      <= '1' WHEN (cpuaddr(31 downto 30)="01") and (cpuaddr(26)='1' or cpuaddr(25 downto 24)="01") else '0'; -- and z3ram3_ena='1' ELSE '0';
 end generate;
 
-	sel_gayle_ide <= '1' when state(1 downto 0) = "10" and cpuaddr(31 downto 14)=X"00DA"&"00" else '0';
+	sel_gayle_ide <= '0'; -- '1' when state(1 downto 0) = "10" and cpuaddr(31 downto 14)=X"00DA"&"00" else '0';
 
 	sel_akiko <= '1' when cpuaddr(31 downto 16)=X"00B8" else '0';
 	sel_32 <= '1' when cpu(1)='1' and cpuaddr(31 downto 24)/=X"00" and cpuaddr(31 downto 24)/=X"ff" else '0'; -- Decode 32-bit space, but exclude interrupt vectors
@@ -370,7 +370,7 @@ end generate;
 -- addr(22) <= (addr(22) and not sel_ziii_3) or (addr(21) and sel_ziii_3);
 -- addr(21) <= addr(21) xor sel_ziii_3;
  
-DUALRAM_ADDR: if dualsdram=true generate
+DUALRAM_ADDR: if dualsdram=1 generate
 
 -- With dual SDRAM setups we have 2 64 meg RAMs, and memory configured like so:
 -- 64 meg from 0x40000000 to 0x43ffffff - bit 30 set, bit 26 clr, bit 25 d/c  =>  26 set, 25 src, 24 src
@@ -388,7 +388,7 @@ DUALRAM_ADDR: if dualsdram=true generate
 
 end generate;
 
-SINGLERAM_ADDR: if dualsdram=false generate
+SINGLERAM_ADDR: if dualsdram=0 generate
 
   ramaddr(31 downto 26) <= "000000";
   ramaddr(25) <= sel_z3ram2; -- Second block of 32 meg
@@ -635,6 +635,11 @@ begin
 			lds2 <= '1';
 			clkena_e <= '0';
 			clkena_f <= '0';
+			addr<=(others=>'0');
+			fast_rd<='0';
+			r_data<=(others=>'0');
+			data_write<=(others=>'0');
+			data_write2<=(others=>'0');
 		ELSIF rising_edge(clk) THEN
 			IF S_state = "01" AND clkena_e = '1' THEN
 				uds2 <= uds_in;
@@ -729,7 +734,7 @@ begin
 end block;
 
 
-genprofiler : if useprofiler generate
+genprofiler : if useprofiler=1 generate
 	profiler : component profile_cpu
 	port map (
 		clk => clk,

@@ -10,6 +10,16 @@
 #
 # ================================================================================
 
+# Message using quartus's post_message if available, and puts if not
+# (Allows script to run under other Tcl hosts)
+proc msg {text} {
+	if {"post_message" in [info commands "post_message"]} {
+		post_message $text
+	} else {
+		puts $text
+	}
+}
+
 proc generateBuildID_Verilog {} {
 
 	# Beta flag
@@ -34,12 +44,13 @@ proc generateBuildID_Verilog {} {
 	close $outputFile
 
 	# Send confirmation message to the Messages window
-	post_message "Generated build identification Verilog module: [pwd]/$outputFileName"
-	post_message "Beta:             $buildBeta"
-	post_message "Year:             $buildYear"
-	post_message "Month:            $buildMonth"
-	post_message "Day:              $buildDay"
+	msg "Generated build identification Verilog module: [pwd]/$outputFileName"
+	msg "Beta:             $buildBeta"
+	msg "Year:             $buildYear"
+	msg "Month:            $buildMonth"
+	msg "Day:              $buildDay"
 }
 
 # Comment out this line to prevent the process from automatically executing when the file is sourced:
 generateBuildID_Verilog
+

@@ -8,20 +8,28 @@ package minimig_virtual_pkg is
 
 	COMPONENT minimig_virtual_top
 	generic
-	( debug : integer := 0;
+	( hostonly : integer := 0;
+	  debug : integer := 0;
 	  spimux : integer := 0;
-	  havespirtc : integer := 0;
 	  haveiec : integer := 0;
 	  havereconfig : integer := 0;
-	  havec2p : integer := 1;
 	  havertg : integer := 1;
 	  haveaudio : integer := 1;
-	  havecart : integer := 1;
+	  havec2p : integer := 1;
+	  havespirtc : integer := 0;
 	  ram_64meg : integer := 0;
-	  vga_width : integer := 5
+	  vga_width : integer := 5;
+	  havecart : integer := 1;
+	  haveaga : integer :=1
 	);
 	PORT
 	(
+		-- JTAG "pins"
+		sys_tdo : out std_logic;
+		sys_tdi : in std_logic;
+		sys_tck : in std_logic;
+		sys_tms : in std_logic;
+		
 		CLK_114		:	 out STD_LOGIC;
 		CLK_28		:	 out STD_LOGIC;
 		CLK_IN 		:   in std_logic;
@@ -39,6 +47,15 @@ package minimig_virtual_pkg is
 		VGA_R		:	 OUT STD_LOGIC_VECTOR(vga_width-1 DOWNTO 0);
 		VGA_G		:	 OUT STD_LOGIC_VECTOR(vga_width-1 DOWNTO 0);
 		VGA_B		:	 OUT STD_LOGIC_VECTOR(vga_width-1 DOWNTO 0);
+		VGA_STROBE  :   OUT STD_LOGIC;
+		VGA_DE      :   OUT STD_LOGIC;
+		DVI_HS		:	 OUT STD_LOGIC;
+		DVI_VS		:	 OUT STD_LOGIC;
+		DVI_R		:	 OUT STD_LOGIC_VECTOR(7 DOWNTO 0);
+		DVI_G		:	 OUT STD_LOGIC_VECTOR(7 DOWNTO 0);
+		DVI_B		:	 OUT STD_LOGIC_VECTOR(7 DOWNTO 0);
+		DVI_STROBE  :   OUT STD_LOGIC;
+		DVI_DE      :   OUT STD_LOGIC;
 		SDRAM_DQ		:	 INOUT STD_LOGIC_VECTOR(15 DOWNTO 0);
 		SDRAM_A		:	 OUT STD_LOGIC_VECTOR(12 DOWNTO 0);
 		SDRAM_DQML		:	 OUT STD_LOGIC;

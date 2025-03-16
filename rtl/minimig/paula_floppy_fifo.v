@@ -20,7 +20,7 @@ module paula_floppy_fifo
 );
 
 //local signals and registers
-reg 	[15:0] mem [2047:0];	// 2048 words by 16 bit wide fifo memory (for 2 MFM-encoded sectors)
+reg 	[15:0] mem [2047:0];	/* synthesis syn_ramstyle="block_ram"*/ // 2048 words by 16 bit wide fifo memory (for 2 MFM-encoded sectors)
 reg		[11:0] in_ptr;			//fifo input pointer
 reg		[11:0] out_ptr;			//fifo output pointer
 wire	equal;					//lower 11 bits of in_ptr and out_ptr are equal

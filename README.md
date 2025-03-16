@@ -1,6 +1,17 @@
 # Minimig AGA
-For Turbo Chameleon TC64, MiST and other platforms.
-(This core should be easily portable to any FPGA board with VGA out, PS/2 in, SD-card, about 25,000 logic elements, and a 16-bit wide SDRAM supporting 13x9 layout for 32 megabytes of RAM.)
+Ported to IceSugarPro and FleaOhm
+
+## Important:
+minimig_version.vh is a generated file, which must be created before building the project.
+In Quartus it's generated as a pre-flow Tcl script.
+For other platforms you need to run it manually. In Diamond this can be done by typing:
+> source ../../tcl/build_id.tcl
+in the Tcl Console.
+
+You can also run it using any other Tcl host, from the shell, for example:
+> cd rtl/minimig
+> tclsh ../../tcl/build_id.tcl
+
 
 ### Foreword
 

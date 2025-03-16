@@ -8,6 +8,7 @@ module denise_colortable
 (
   input  wire           clk,              // 28MHz clock
   input  wire           clk7_en,          // 7MHz clock enable
+  input  wire           reset,
   input  wire [  9-1:1] reg_address_in,   // register adress inputs
   input  wire [ 12-1:0] data_in,          // bus data in
   input  wire           rdram,            // read the color table instead of writing to it
@@ -39,6 +40,7 @@ reg           ehb_sel;
 denise_colortable_ram_mf clut
 (
   .clock      (clk    ),
+  .reset      (reset  ),
   .enable     (1'b1   ),
   .wraddress  (wr_adr ),
   .wren       (wr_en  ),

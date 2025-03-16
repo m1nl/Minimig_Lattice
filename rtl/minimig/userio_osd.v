@@ -594,6 +594,17 @@ assign host_adr  = mem_adr[23:0];
 `endif // MINIMIG_HOST_DIRECT
 
 // rtl version
+
+// minimig_version.vh is a generated file. In Quartus it's generated as a pre-flow Tcl script.
+// For other platforms you need to run it manually.
+// In Diamond this can be done by typing:
+// source ../../tcl/build_id.tcl
+// in the Tcl Console.
+
+// You can also run it using any other Tcl host, from the shell, for example:
+// cd rtl/minimig
+// tclsh ../../tcl/build_id.tcl
+
 `include "minimig_version.vh"
 reg  [8-1:0] rtl_ver;
 always @ (*) begin

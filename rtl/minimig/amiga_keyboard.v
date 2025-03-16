@@ -40,7 +40,7 @@ reg   [7:0] osd_ctrl_reg;
 assign osd_ctrl = osd_ctrl_reg;
 
 // serial transmitter
-always @(posedge clk) begin
+always @(posedge clk) begin : xmit
 	reg [10:0] txcnt;
 	reg  [7:0] txsr;
 

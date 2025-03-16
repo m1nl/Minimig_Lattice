@@ -7,7 +7,7 @@ use ieee.numeric_std.all;
 
 entity EightThirtyTwo_Bridge is
 	generic (
-		debug : boolean := false
+		debug : integer := 0
 	);
 	port(
 		clk             : in std_logic;
@@ -61,7 +61,7 @@ port
 (
 	sysclk : in std_logic;
 	reset_n : in std_logic;
-	a : in std_logic_vector(24 downto 2);
+	a : in std_logic_vector(25 downto 2);
 	q : out std_logic_vector(31 downto 0);
 	req : in std_logic;
 	wr : in std_logic;
@@ -74,6 +74,8 @@ end component;
 
 begin
 
+gendebugbridge:
+if debug=1 generate
 
 my832 : entity work.eightthirtytwo_cpu
 generic map (
@@ -82,7 +84,7 @@ generic map (
 	dualthread => false,
 	forwarding => false,
 	prefetch => false,
-	debug => debug
+	debug => true
 )
 port map(
 	clk => clk, 
@@ -102,9 +104,6 @@ port map(
 	debug_wr => debug_wr
 );
 
-
-gendebugbridge:
-if debug=true generate
 debugbridge : entity work.debug_bridge_jtag
 port map(
 	clk => clk,
@@ -117,6 +116,31 @@ port map(
 );
 end generate;
 
+nodebug:
+if debug=0 generate
+my832 : entity work.eightthirtytwo_cpu
+generic map (
+	littleendian => false,
+	interrupts => true,
+	dualthread => false,
+	forwarding => false,
+	prefetch => false,
+	debug => false
+)
+port map(
+	clk => clk, 
+	reset_n => nReset,
+	addr => cpu_addr,
+	d => cpu_d,
+	q => cpu_q,
+	wr => cpu_wr,
+	req => cpu_req,
+	ack => cpu_ack,
+	bytesel => cpu_sel,
+	interrupt => interrupt
+);
+
+end generate;
 
 bootrom: entity work.OSDBoot_832_ROM
 	generic map
@@ -144,6 +168,13 @@ begin
 		state<=waiting;
 		hw_req<='0';
 		wr<='0';
+		rom_wr<='0';
+		cache_req<='0';
+		cpu_d<=(others=>'0');
+		cpu_ack<='0';
+		addr<=(others=>'0');
+		q<=(others=>'0');
+		sel<=(others=>'0');
 	elsif rising_edge(clk) then
 
 		cpu_ack<='0';
@@ -208,7 +239,7 @@ port map
 (
 	sysclk => clk,
 	reset_n => nReset,
-	a => cpu_addr(24 downto 2),
+	a => cpu_addr(25 downto 2),
 	q => cache_q,
 	req => cache_req,
 	wr => cpu_wr,

@@ -18,7 +18,7 @@ module ide_fifo
 );
 
 // local signals and registers
-reg   [15:0] mem [4095:0]; // 16 bit wide fifo memory
+reg   [15:0] mem [4095:0]; /* synthesis syn_ramstyle="block_ram"*/ // 16 bit wide fifo memory
 reg   [12:0] inptr;        // fifo input pointer
 reg   [12:0] outptr;       // fifo output pointer
 wire         empty_rd;     // fifo empty flag (set immediately after reading the last word)

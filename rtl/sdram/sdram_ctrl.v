@@ -21,7 +21,8 @@
 //////////////////////////////////////////////////////////////////////////////
 
 
-module sdram_ctrl(
+module sdram_ctrl # (parameter addr_max_bits=26, parameter addr_prefix_bits=0, parameter addr_prefix=0)
+(
   // system
   input  wire           sysclk,
   input  wire           clk7_en,
@@ -86,10 +87,6 @@ module sdram_ctrl(
   output reg            ena7WRreg,
   output wire           cpuena
 );
-
-parameter addr_max_bits=26;
-parameter addr_prefix_bits=0;
-parameter addr_prefix=0;
 
 parameter shortcut=0; // 0: Maintain sync with clk7_en.  1: Respond as quickly as possible to new requests.
 

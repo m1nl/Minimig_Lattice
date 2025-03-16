@@ -415,6 +415,7 @@ denise_colortable clut0
 (
   .clk(clk),
   .clk7_en(clk7_en),
+  .reset(reset),
   .reg_address_in(reg_address_in),
   .data_in(data_in[11:0]),
   .rdram(rdram),
@@ -434,6 +435,7 @@ denise_hamgenerator ham0
 (
   .clk(clk),
   .clk7_en(clk7_en),
+  .reset(reset),
   .reg_address_in(reg_address_in),
   .data_in(data_in[11:0]),
   .select(bpldata),

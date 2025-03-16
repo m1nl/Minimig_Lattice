@@ -15,7 +15,7 @@ module dpram_inf_generic #(parameter depth = 8, parameter width = 32 ) (
 );
 
 // memory
-reg [width-1:0] mem [0:(1<<depth)-1];
+reg [width-1:0] mem [0:(1<<depth)-1] /* synthesis syn_ramstyle="block_ram"*/;
 
 // port a
 always @ (posedge clock) begin

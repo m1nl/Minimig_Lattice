@@ -1,0 +1,80 @@
+###==== BEGIN Header
+
+# Synopsys, Inc. constraint file
+# /home/amr/FPGA/flea/MinimigAGA/fpga/icesugarpro/constraints.fdc
+# Written on Tue Mar  4 09:50:42 2025
+# by Synplify Pro (R), N-2018.03L-SP1-1 FDC Constraint Editor
+
+# Custom constraint commands may be added outside of the SCOPE tab sections bounded with BEGIN/END.
+# These sections are generated from SCOPE spreadsheet tabs.
+
+###==== END Header
+# Basic clocks
+
+create_clock  -name {pll_clk_114} {n:virtual_top.amiga_clk.amiga_clk_i.clk0.clk_o_1[1]} -period {8.8}
+create_clock  -name {pll_clk_28} {n:virtual_top.amiga_clk.amiga_clk_i.clk0.clk_o_1[2]} -period {35.2}
+
+# set clk_28 [get_clocks {pll_clk_28}]
+# set clk_114 [get_clocks {pll_clk_114}]
+
+# set clk_sdram {i:sdram_clk}
+
+# generated clocks
+
+create_generated_clock -name {spiclk} -source {n:virtual_top.amiga_clk.amiga_clk_i.clk0.clk_o_1[1]} -divide_by {2}
+
+# clock groups
+
+set_clock_groups -derive -asynchronous -group { {c:pll_clk_114} {c:pll_clk_28} } -group {c:spiclk}
+
+# false paths
+
+#set_false_path -to {ARDUINO_IO[*]}
+#set_false_path -from SW[*]
+
+# multicycle paths
+
+#set_multicycle_path -from {i:virtual_top.tg68k.pf68K_Kernel_inst.*} -setup 3
+#set_multicycle_path -from {i:virtual_top.tg68k.pf68K_Kernel_inst.*} -hold 2
+#set_multicycle_path -from {i:virtual_top.tg68k.pf68K_Kernel_inst.memaddr[*]} -setup 3
+#set_multicycle_path -from {i:virtual_top.tg68k.pf68K_Kernel_inst.memaddr[*]} -hold 2
+#set_multicycle_path -from {i:virtual_top.tg68k.pf68K_Kernel_inst.memaddr[*]} -to {i:virtual_top.tg68k.pf68K_Kernel_inst.*} -setup 4
+#set_multicycle_path -from {i:virtual_top.tg68k.pf68K_Kernel_inst.memaddr[*]} -to {i:virtual_top.tg68k.pf68K_Kernel_inst.*} -hold 3
+#set_multicycle_path -from {i:virtual_top.tg68k.addr[*]} -setup 3
+#set_multicycle_path -from {i:virtual_top.tg68k.addr[*]} -hold 2
+
+#set_multicycle_path -from {i:virtual_top.sdram.cache.itram.*} -to {i:virtual_top.sdram.cache.cpu_cacheline_*[*][*]} -setup 2
+#set_multicycle_path -from {i:virtual_top.sdram.cache.itram.*} -to {i:virtual_top.sdram.cache.cpu_cacheline_*[*][*]} -hold 1
+#set_multicycle_path -from {i:virtual_top.sdram.cache.dtram.*} -to {i:virtual_top.sdram.cache.cpu_cacheline_*[*][*]} -setup 2
+#set_multicycle_path -from {i:virtual_top.sdram.cache.dtram.*} -to {i:virtual_top.sdram.cache.cpu_cacheline_*[*][*]} -hold 1
+
+#set_multicycle_path -from [get_clocks $clk_28] -to [get_clocks $clk_114] -setup 4
+#set_multicycle_path -from [get_clocks $clk_28] -to [get_clocks $clk_114] -hold 3
+
+# Move data window for SDRAM reads by 1 cycle
+#set_multicycle_path -from {i:sdram_*} -to {i:virtual_top.sdram.*} -setup 2
+
+# Neither in nor out of the C2P requires single-cycle speed
+#set_multicycle_path -from {minimig_virtual_top:virtual_top.TG68K:tg68k.akiko:myakiko.cornerturn:myc2p.rdptr[*]} -to {minimig_virtual_top:virtual_top.TG68K:tg68k.TG68KdotC_Kernel:pf68K_Kernel_inst.*} -setup -end 2
+#set_multicycle_path -from {minimig_virtual_top:virtual_top.TG68K:tg68k.akiko:myakiko.cornerturn:myc2p.rdptr[*]} -to {minimig_virtual_top:virtual_top.TG68K:tg68k.TG68KdotC_Kernel:pf68K_Kernel_inst.*} -hold -end 2
+#set_multicycle_path -from {minimig_virtual_top:virtual_top.TG68K:tg68k.akiko:myakiko.cornerturn:myc2p.buf[*][*]} -to {minimig_virtual_top:virtual_top.TG68K:tg68k.TG68KdotC_Kernel:pf68K_Kernel_inst.*} -setup -end 2
+#set_multicycle_path -from {minimig_virtual_top:virtual_top.TG68K:tg68k.akiko:myakiko.cornerturn:myc2p.buf[*][*]} -to {minimig_virtual_top:virtual_top.TG68K:tg68k.TG68KdotC_Kernel:pf68K_Kernel_inst.*} -hold -end 2
+
+# Likewise RTG and audio address have 8 cycles of downtime between bursts
+#set_multicycle_path -from {minimig_virtual_top:virtual_top.VideoStream:myvs.address_high[*]} -to {minimig_virtual_top:virtual_top.sdram_ctrl:sdram.*} -setup -end 2
+#set_multicycle_path -from {minimig_virtual_top:virtual_top.VideoStream:myvs.address_high[*]} -to {minimig_virtual_top:virtual_top.sdram_ctrl:sdram.*} -hold -end 2
+#set_multicycle_path -from {minimig_virtual_top:virtual_top.VideoStream:myvs.outptr[*]} -to {minimig_virtual_top:virtual_top.sdram_ctrl:sdram.*} -setup -end 2
+#set_multicycle_path -from {minimig_virtual_top:virtual_top.VideoStream:myvs.outptr[*]} -to {minimig_virtual_top:virtual_top.sdram_ctrl:sdram.*} -hold -end 2
+#set_multicycle_path -from {minimig_virtual_top:virtual_top.VideoStream:myaudiostream.*} -to {minimig_virtual_top:virtual_top.sdram_ctrl:sdram.*} -setup -end 2
+#set_multicycle_path -from {minimig_virtual_top:virtual_top.VideoStream:myaudiostream.*} -to {minimig_virtual_top:virtual_top.sdram_ctrl:sdram.*} -hold -end 2
+
+
+
+###==== BEGIN Clocks - (Populated from tab in SCOPE, do not edit)
+
+###==== END Clocks
+
+
+###==== BEGIN "Delay Paths" - (Populated from tab in SCOPE, do not edit)
+###==== END "Delay Paths"
+

@@ -43,6 +43,8 @@ assign vol3=vol3_i;
 assign vol4=vol4_i;
 assign vol5=vol5_i;
 
+reg aud_overflow_latched;
+
 always @(posedge clk) begin
 	if(sel && lwr) begin
 		case (addr[8:1])
@@ -64,8 +66,6 @@ always @(posedge clk) begin
 	if(audio_overflow)
 		aud_overflow_latched <= 1'b1;
 end
-
-reg aud_overflow_latched;
 
 `ifdef MINIMIG_AUX_AUDIO
 wire have_16bitaudio=1'b1;

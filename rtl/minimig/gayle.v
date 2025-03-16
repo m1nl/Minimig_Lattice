@@ -35,6 +35,11 @@
 
 module gayle
 (
+	// JTAG inputs
+	output sys_tdo,
+	input sys_tdi,
+	input sys_tck,
+	input sys_tms,
 	input	clk,
 	input clk7_en,
 	input	reset,
@@ -67,6 +72,22 @@ module gayle
 
 localparam VCC = 1'b1;
 localparam GND = 1'b0;
+
+//wire [63:0] jcapture_data;
+
+//assign jcapture_data = {sel_ide,nrdy,hdd1_ena,hdd0_ena,hdd_cmd_req,hdd_dat_req,hdd_status_wr,hdd_data_wr,hdd_data_rd,hdd_wr,irq};
+
+//jcapture jcap (
+	//.clk(clk),
+	//.reset_n(1'b1),
+	//.sys_tck(sys_tck),
+	//.sys_tdi(sys_tdi),
+	//.sys_tdo(sys_tdo),
+	//.sys_tms(sys_tms),
+	//.d(jcapture_data),
+	//.q(),
+	//.update()
+//);
 
 //0xda2000 Data
 //0xda2004 Error | Feature

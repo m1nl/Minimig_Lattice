@@ -1,6 +1,6 @@
 // taken and tweaked from MiSTer sys/
 
-module i2s
+module i2s #(parameter I2S_Freq = 48_000, parameter AUDIO_DW = 16)
 (
 	input        reset,
 	input        clk,
@@ -15,8 +15,6 @@ module i2s
 );
 
 // Clock Setting
-parameter I2S_Freq = 48_000;     // 48 KHz
-parameter AUDIO_DW = 16;
 
 localparam I2S_FreqX2 = I2S_Freq*2*AUDIO_DW*2;
 
@@ -35,7 +33,7 @@ always @(posedge clk) begin
 end
 
 
-always @(posedge clk) begin
+always @(posedge clk) begin : i2s_serialize
 	reg  [4:0] bit_cnt = 1;
 
 	reg [AUDIO_DW-1:0] left;

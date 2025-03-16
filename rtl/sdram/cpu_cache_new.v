@@ -9,7 +9,8 @@
 
 // AMR - adjust for 8-word bursts.
 
-module cpu_cache_new (
+module cpu_cache_new # (parameter addr_max_bits=26, parameter addr_prefix_bits=1, parameter addr_prefix=0)
+(
   // system
   input  wire           clk,            // clock
   input  wire           rst,            // cache reset
@@ -44,10 +45,6 @@ module cpu_cache_new (
   input  wire [ 32-1:0] snoop_dat_w,    // snoop write data
   input  wire [  4-1:0] snoop_bs        // snoop byte selects
 );
-
-parameter addr_max_bits=26;
-parameter addr_prefix_bits=1;
-parameter addr_prefix=0;
 
 wire addr_prefix_match;
 generate

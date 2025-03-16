@@ -40,6 +40,8 @@ architecture rtl of VideoStream is
 
 type samplebuffer is array(0 to 2**fifodepth-1) of std_logic_vector(signalwidth-1 downto 0);
 signal buf : samplebuffer;
+attribute syn_ramstyle : string;
+attribute syn_ramstyle of buf : signal is "block_ram";
 signal inptr : unsigned(fifodepth-1 downto 0);
 signal outptr : unsigned(fifodepth-1 downto 0);
 signal watermark : unsigned(fifodepth-1 downto 0);

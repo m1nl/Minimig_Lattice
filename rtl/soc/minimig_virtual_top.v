@@ -1,4 +1,4 @@
-/********************************************/
+/*******************************************/
 /* Virtual toplevel for Minimig, based on   */
 /* minimig_mist_top.v                       */
 /*                                          */
@@ -19,8 +19,6 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>
 
-`default_nettype none
-
 // board type define
 `define MINIMIG_VIRTUAL
 //`define HOSTONLY
@@ -39,9 +37,15 @@ module minimig_virtual_top	#(
 	parameter havespirtc = 0,
 	parameter ram_64meg = 0,
 	parameter vga_width = 6,
-	parameter havecart = 1
+	parameter havecart = 1,
+	parameter haveaga = 1
 )
 (
+  // JTAG inputs
+  output sys_tdo,
+  input sys_tdi,
+  input sys_tck,
+  input sys_tms,
   // clock inputs
   input wire            CLK_IN,
   output wire           CLK_114,
@@ -68,6 +72,17 @@ module minimig_virtual_top	#(
   output reg [  vga_width-1:0] VGA_R,      // VGA Red[5:0]
   output reg [  vga_width-1:0] VGA_G,      // VGA Green[5:0]
   output reg [  vga_width-1:0] VGA_B,      // VGA Blue[5:0]
+  output reg            VGA_STROBE,
+  output reg            VGA_DE,
+  
+  // DVI
+  output reg            DVI_HS,     // VGA H_SYNC
+  output reg            DVI_VS,     // VGA V_SYNC
+  output reg [  7:0]    DVI_R,      // VGA Red[5:0]
+  output reg [  7:0]    DVI_G,      // VGA Green[5:0]
+  output reg [  7:0]    DVI_B,      // VGA Blue[5:0]
+  output                DVI_STROBE,
+  output reg            DVI_DE,
   
   // SDRAM
   inout  wire [ 16-1:0] SDRAM_DQ,   // SDRAM Data bus 16 Bits
@@ -119,7 +134,6 @@ module minimig_virtual_top	#(
   input wire			FREEZE
 );
 
-
 ////////////////////////////////////////
 // internal signals                   //
 ////////////////////////////////////////
@@ -146,6 +160,8 @@ wire           reg_status;
 
 // tg68
 wire           tg68_rst;
+reg            tg68_rst_d;
+reg            tg68_rst_sync;
 wire [ 16-1:0] tg68_dat_in;
 wire [ 16-1:0] tg68_dat_in2;
 wire [ 16-1:0] tg68_dat_out;
@@ -174,7 +190,7 @@ wire           aga;
 wire           cache_inhibit;
 wire           cacheline_clr;
 wire [ 32-1:0] tg68_cad;
-wire [  7-1:0] tg68_cpustate;
+wire [  4-1:0] tg68_cpustate;
 wire           tg68_nrst_out;
 //wire           tg68_cdma;
 wire           tg68_clds;
@@ -260,6 +276,7 @@ wire rtg_ena;	// RTG screen on/off
 
 wire hblank_amiga;
 wire vblank_amiga;
+wire blank_amiga;
 reg rtg_vblank;
 wire rtg_blank;
 reg rtg_blank_d;
@@ -287,6 +304,10 @@ wire [7:0] rtg_b;
 
 wire rtg_pixel;
 
+wire selcsync;
+wire rtg_linecompare;
+wire rtg_ena_mm;
+
 rtg_video rtg (
 	.clk_114(CLK_114),
 	.clk_28(CLK_28),
@@ -310,11 +331,13 @@ rtg_video rtg (
 	.amiga_hb(hblank_amiga),
 	.amiga_vb(vblank_amiga),
 	.amiga_hs(hs),
+	.amiga_blank(blank_amiga),
 
 	.red(rtg_r),
 	.green(rtg_g),
 	.blue(rtg_b),
-	.pixel(rtg_pixel)
+	.pixel(rtg_pixel),
+	.de(rtg_de)
 );
 
 
@@ -350,7 +373,7 @@ reg aud_tick;
 reg aud_tick_d;
 reg aud_next;
 
-wire [24:0] aud_addr;
+wire [25:0] aud_addr;
 wire [15:0] aud_sample;
 
 wire aud_ramreq;
@@ -362,9 +385,11 @@ wire aud_ena_host;
 wire aud_ena_cpu;
 wire aud_clear;
 
-wire [22:0] aud_ramaddr;
+wire [25:0] aud_ramaddr;
 assign aud_ramaddr[15:0]=aud_addr[15:0];
-assign aud_ramaddr[22:16]=7'b1101111;  // 0x6f0000 in SDRAM, 0x040000 to host, 0xec0000 to Amiga
+assign aud_ramaddr[25:16]=10'b0001101111;  // 0x6f0000 in SDRAM, 0x040000 to host, 0xec0000 to Amiga
+
+wire [25:0] aud_baseaddr=26'b0;
 
 reg [9:0] aud_ctr;
 always @(posedge CLK_28) begin
@@ -390,21 +415,21 @@ always @(posedge CLK_114) begin
 end	
 
 // We can use the same type of FIFO as we use for video.
-VideoStream myaudiostream
+VideoStream #(.fifodepth(9),.burstdepth(3),.signalwidth(16)) myaudiostream
 (
 	.clk(CLK_114),
 	.reset_n(aud_ena_host | aud_ena_cpu), // !aud_clear),
 	.enable(aud_ena_host | aud_ena_cpu),
-	.baseaddr(25'b0),
+	.baseaddr(aud_baseaddr),
 	// SDRAM interface
 	.a(aud_addr),
 	.req(aud_ramreq),
 	.ack(aud_ramack),
 	.pri(aud_rampri),
 	.d(aud_fromram),
-	.fill(aud_fill & haveaudio),
+	.fill(aud_fill & (haveaudio ? 1'b1 : 1'b0)),
 	// Display interface
-	.rdreq(aud_next & haveaudio),
+	.rdreq(aud_next & (haveaudio ? 1'b1 : 1'b0)),
 	.q(aud_sample)
 );
 
@@ -435,13 +460,18 @@ assign tg68_cpustate=2'b01;
 assign tg68_nrst_out=1'b1;
 `else
 
-TG68K #(.havertg(havertg ? "true" : "false"),
-			.haveaudio(haveaudio ? "true" : "false"),
-			.havec2p(havec2p ? "true" : "false"),
-			.havecart(havecart ? "true" : "false")
+always @(posedge CLK_114) begin
+	tg68_rst_d<=tg68_rst;
+	tg68_rst_sync<=tg68_rst_d;
+end
+
+TG68K #(.havertg(havertg),
+			.haveaudio(haveaudio),
+			.havec2p(havec2p),
+			.havecart(havecart)
 		) tg68k (
   .clk          (CLK_114          ),
-  .reset        (tg68_rst         ),
+  .reset        (tg68_rst_sync    ),
   .clkena_in    (tg68_ena28       ),
   .IPL          (tg68_IPL         ),
   .dtack        (tg68_dtack       ),
@@ -524,7 +554,7 @@ wire           hostce;
 
 //sdram sdram (
 sdram_ctrl sdram (
-  .cache_rst    (tg68_rst         ),
+  .cache_rst    (tg68_rst_sync    ),
   .cache_inhibit(cache_inhibit    ),
   .cacheline_clr(cacheline_clr    ),
   .cpu_cache_ctrl (tg68_CACR_out    ),
@@ -646,12 +676,13 @@ assign _ram_oe=1'b1;
 assign _ram_we=1'b1;
 `else
 
-wire selcsync;
-wire rtg_linecompare;
-wire rtg_ena_mm;
-
-minimig minimig
+minimig #(.useaga(haveaga)) minimig
 (
+	// JTAG
+	.sys_tdo(sys_tdo),
+	.sys_tdi(sys_tdi),
+	.sys_tck(sys_tck),
+	.sys_tms(sys_tms),
 	//m68k pins
 	.cpu_address  (tg68_adr[23:1]   ), // M68K address bus
 	.cpu_data     (tg68_dat_in      ), // M68K data bus
@@ -682,7 +713,7 @@ minimig minimig
 	._ram_oe      (_ram_oe          ), // SRAM output enable
 	.chip48       (chip48           ), // big chipram read
 	//system  pins
-	.rst_ext      (!RESET_N         ), // reset from ctrl block
+	.rst_ext      (!reset_out       ), // reset from ctrl block
 	.rst_out      (                 ), // minimig reset status
 	.clk          (CLK_28           ), // output clock c1 ( 28.687500MHz)
 	.clk7_en      (clk7_en          ), // 7MHz clock enable
@@ -738,8 +769,8 @@ minimig minimig
 	.green        (green_amiga      ),  // green
 	.blue         (blue_amiga       ),  // blue
 	//audio
-	.left         (                 ),  // audio bitstream left
-	.right        (                 ),  // audio bitstream right
+//	.left         (                 ),  // audio bitstream left
+//	.right        (                 ),  // audio bitstream right
 	.ldata        (AUDIO_L          ),  // left DAC data
 	.rdata        (AUDIO_R          ),  // right DAC data
     .aux_left_2   (aud_left         ),  // Auxiliary audio channels
@@ -762,6 +793,7 @@ minimig minimig
 	.hd_frd       (                 ),  // hd fifo  ading
 	.hblank_out   (hblank_amiga     ),
 	.vblank_out   (vblank_amiga     ),
+	.blank_out    (blank_amiga      ),
 	.osd_blank_out(osd_window       ),  // Let the toplevel dither module handle drawing the OSD.
 	.osd_pixel_out(osd_pixel        ),
 	.rtg_ena      (rtg_ena_mm       ),
@@ -777,7 +809,7 @@ assign rtg_ena = havertg && rtg_ena_mm;
 
 wire host_interrupt;
 
-EightThirtyTwo_Bridge #( debug ? "true" : "false") hostcpu
+EightThirtyTwo_Bridge #( debug) hostcpu
 (
 	.clk(CLK_114),
 	.nReset(reset_out),
@@ -796,11 +828,11 @@ EightThirtyTwo_Bridge #( debug ? "true" : "false") hostcpu
 
 
 cfide #(
-	.spimux(spimux ? "true" : "false"),
-	.havespirtc(havespirtc ? "true" : "false"),
-	.haveiec(haveiec ? "true" : "false"),
-	.havereconfig(havereconfig ? "true" : "false"),
-	.havecart(havecart ? "true" : "false")
+	.spimux(spimux),
+	.havespirtc(havespirtc),
+	.haveiec(haveiec),
+	.havereconfig(havereconfig),
+	.havecart(havecart)
 ) mycfide ( 
 		.sysclk(CLK_114),
 		.n_reset(reset_out),
@@ -842,7 +874,7 @@ cfide #(
 		.amiga_wr(tg68_cpustate[0]),
 		.amiga_ack(amigahost_ack),
 
-      .rtc_q(rtc),
+		.rtc_q(rtc),
 		.reconfig(RECONFIG),
 		.iecserial(IECSERIAL),
 
@@ -858,18 +890,24 @@ wire           dithered_hs;
 wire           dithered_de;
 
 reg [2:0] vga_strobe_ctr;
-always @(posedge CLK_114)
-	vga_strobe_ctr<=_15khz ? {vga_strobe_ctr[2:1],1'b0}+3'b010 : vga_strobe_ctr+3'b001;
+always @(posedge CLK_114) begin
+	if(rtg_ena)
+		vga_strobe_ctr<={vga_strobe_ctr[2],2'b00}+3'b100;
+	else if (_15khz)
+		vga_strobe_ctr<={vga_strobe_ctr[2:1],1'b0}+3'b010;
+	else
+		vga_strobe_ctr<= vga_strobe_ctr+3'b001;
+end
 
-wire vga_strobe;
-assign vga_strobe = ~(|vga_strobe_ctr);
+wire vga_stb;
+assign vga_stb = ~(|vga_strobe_ctr);
 
 wire vga_window = 1'b1;
-video_vga_dither #(.outbits(vga_width), .flickerreduce("true")) dither
+video_vga_dither #(.outbits(vga_width), .flickerreduce(1)) dither
 (
 	.clk(CLK_114),
 	.ena(1'b1),
-	.pixel(rtg_ena ? rtg_pixel : vga_strobe),
+	.pixel(rtg_ena ? rtg_pixel : vga_stb),
 	.vidEna(vga_window),
 	.iSelcsync(1'b0), // selcsync),
 	.iCsync(VGA_CS_INT),
@@ -883,9 +921,9 @@ video_vga_dither #(.outbits(vga_width), .flickerreduce("true")) dither
 	.oRed(dithered_red),
 	.oGreen(dithered_green),
 	.oBlue(dithered_blue)
-	);
+);
 	
-	
+		
 always @(posedge CLK_114) begin
 	VGA_VS <= dithered_vs ^ (vsyncpol & !selcsync);
 	VGA_HS <= dithered_hs ^ (hsyncpol & !selcsync);
@@ -893,7 +931,22 @@ always @(posedge CLK_114) begin
 	VGA_R <= dithered_red[7:8-vga_width];
 	VGA_G <= dithered_green[7:8-vga_width];
 	VGA_B <= dithered_blue[7:8-vga_width];
+	VGA_STROBE <= rtg_ena ? rtg_pixel : vga_stb;
+	VGA_DE <= rtg_de;
 end
+
+always @(posedge CLK_114) begin
+	if(vga_stb) begin
+		DVI_VS <= VGA_VS_INT ^ (vsyncpol & !selcsync);
+		DVI_HS <= VGA_HS_INT ^ (hsyncpol & !selcsync);
+
+		DVI_R <= VGA_R_INT;
+		DVI_G <= VGA_G_INT;
+		DVI_B <= VGA_B_INT;
+		DVI_DE <= rtg_de;
+	end
+end
+assign DVI_STROBE = vga_stb; // rtg_ena ? rtg_pixel : vga_stb;
 
 `ifdef MINIMIG_CAPTURE_SYNC
 edge_capture #(.bits(2)) synccapture (

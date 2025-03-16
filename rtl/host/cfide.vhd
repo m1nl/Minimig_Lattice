@@ -25,16 +25,16 @@
  
 library IEEE;
 use IEEE.std_logic_1164.all;
-use IEEE.STD_LOGIC_UNSIGNED.all;
+use IEEE.numeric_std.all;
 
 entity cfide is
 	generic (
-		spimux : in boolean := false;
-		havespirtc : in boolean := false;
-		haveiec : in boolean := false;
-		havereconfig : in boolean := false;
-		havecart : in boolean := false;
-		haveclockport : in boolean := false
+		spimux : integer := 0;
+		havespirtc : integer := 0;
+		haveiec : integer := 0;
+		havereconfig : integer := 0;
+		havecart : integer := 0;
+		haveclockport : integer := 0
 	);
    port ( 
 		sysclk	: in std_logic;
@@ -93,7 +93,7 @@ end cfide;
 architecture rtl of cfide is
 
 signal shift: std_logic_vector(9 downto 0);
-signal clkgen: std_logic_vector(9 downto 0);
+signal clkgen: unsigned(9 downto 0);
 signal shiftout: std_logic;
 signal txbusy: std_logic;
 signal uart_ld: std_logic;
@@ -113,17 +113,17 @@ signal sd_out	: std_logic_vector(15 downto 0);
 signal sd_in	: std_logic_vector(15 downto 0);
 signal sd_in_shift	: std_logic_vector(15 downto 0);
 signal sd_di_in	: std_logic;
-signal shiftcnt	: std_logic_vector(13 downto 0);
+signal shiftcnt	: unsigned(13 downto 0);
 signal sck		: std_logic;
 signal scs		: std_logic_vector(7 downto 0);
 --signal dscs		: std_logic;
 signal SD_busy		: std_logic;
-signal spi_div: std_logic_vector(8 downto 0);
-signal spi_speed: std_logic_vector(7 downto 0);
+signal spi_div: unsigned(8 downto 0);
+signal spi_speed: unsigned(7 downto 0);
 signal spi_wait : std_logic;
 signal spi_wait_d : std_logic;
 
-signal timecnt: std_logic_vector(23 downto 0);
+signal timecnt: unsigned(23 downto 0);
 
 signal rs232_select : std_logic;
 signal rs232data : std_logic_vector(15 downto 0);
@@ -150,17 +150,17 @@ begin
 -- Peripheral registers are only 16-bits wide.
 
 q(15 downto 0) <=	IOdata WHEN rs232_select='1' or SPI_select='1' ELSE
-		timecnt(23 downto 8) when timer_select='1' ELSE 
+		std_logic_vector(timecnt(23 downto 8)) when timer_select='1' ELSE 
 		audio_q when audio_select='1' else
 		keyboard_q when keyboard_select='1' else
 		amigatohost when amiga_select='1' else
 		platformdata;
 
-spirtcpresent <= '1' when havespirtc=true else '0';
-iecpresent <= '1' when haveiec=true else '0';
-reconfigpresent <= '1' when havereconfig=true else '0';
-cartpresent <= '1' when havecart=true else '0';
-clockportpresent <= '1' when haveclockport=true else '0';
+spirtcpresent <= '1' when havespirtc=1 else '0';
+iecpresent <= '1' when haveiec=1 else '0';
+reconfigpresent <= '1' when havereconfig=1 else '0';
+cartpresent <= '1' when havecart=1 else '0';
+clockportpresent <= '1' when haveclockport=1 else '0';
 
 platformdata <=  X"00" & cartpresent & c64_present & clockportpresent & iecpresent & reconfigpresent & spirtcpresent & "1" & menu_button;
 
@@ -388,6 +388,8 @@ end process;
 			spi_speed <= "00000000";
 --			dscs <= '0';
 			spi_wait <= '0';
+			sd_out<=(others=>'0');
+			sd_in_shift<=(others=>'0');
 		ELSIF rising_edge(sysclk) THEN
 
 			spi_wait_d<=spi_wait;
@@ -399,7 +401,7 @@ end process;
 			IF SPI_select='1' AND req='1' and wr='1' AND SD_busy='0' THEN	 --SD write
 				case addr(3 downto 2) is				
 					when "10" => -- 8
-						spi_speed <= d(7 downto 0);
+						spi_speed <= unsigned(d(7 downto 0));
 					when "01" => -- 4
 						scs(0) <= not d(0);
 						IF d(7)='1' THEN
@@ -427,7 +429,7 @@ end process;
 	--						ELSE							--DA4000
 						if scs(1)='1' THEN -- Wait for io component to propagate signals.
 							spi_wait<='1'; -- Only wait if SPI needs to go through the MUX
-							if spimux = true then
+							if spimux = 1 then
 								spi_div(8 downto 1) <= spi_speed+4;
 							else
 								spi_div(8 downto 1) <= spi_speed;
@@ -450,7 +452,7 @@ end process;
 				IF spi_div="0000000000" THEN
 					if scs(1)='1' THEN -- Wait for io component to propagate signals.
 						spi_wait<='1'; -- Only wait if SPI needs to go through the MUX
-						if spimux=true then
+						if spimux=1 then
 							spi_div(8 downto 1) <= spi_speed+4;
 						else
 							spi_div(8 downto 1) <= spi_speed;
@@ -483,6 +485,7 @@ end process;
 -----------------------------------------------------------------
 debugTxD <= not shiftout;
 process(n_reset, clk_28, shift)
+  constant CLKGEN_28_115 : unsigned(9 downto 0) := "0011110110";
 begin
 	if shift="0000000000" then
 		txbusy <= '0';
@@ -493,6 +496,7 @@ begin
 	if n_reset='0' then
 		shiftout <= '0';
 		shift <= "0000000000"; 
+		clkgen<=CLKGEN_28_115;
 	elsif rising_edge(clk_28) then
 		if uart_ld = '1' then
 			shift <=  '1' & d(7 downto 0) & '0';			--STOP,MSB...LSB, START
@@ -501,7 +505,7 @@ begin
 			clkgen <= clkgen-1;
 		else	
 --			clkgen <= "1111011001";--985;		--113.5MHz/115200
-			clkgen <= "0011110110";--246;		--28.36MHz/115200
+			clkgen <= CLKGEN_28_115;--246;		--28.36MHz/115200
 			shiftout <= not shift(0) and txbusy;
 			shift <=  '0' & shift(9 downto 1);
 		end if;

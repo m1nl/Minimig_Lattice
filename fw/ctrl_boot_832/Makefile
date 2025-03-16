@@ -61,6 +61,9 @@ $(ROMGEN): ../romgen/romgen.c
 	sed 's/soc_firmware/$*_ROM/' >$*_ROM.vhd <$(RTL_DIR)/rom_prologue.vhd
 	$(ROMGEN) $*.bin >>$*_ROM.vhd
 	cat >>$*_ROM.vhd $(RTL_DIR)/rom_epilogue.vhd
+	sed 's/soc_firmware/$*_ROM/' >$*_ROM_word.vhd <$(RTL_DIR)/rom_prologue_word.vhd
+	$(ROMGEN) -w $*.bin >>$*_ROM_word.vhd
+	cat >>$*_ROM_word.vhd $(RTL_DIR)/rom_epilogue_word.vhd
 
 bootdiag.h: bootdiag.s
 	vasmm68k_mot -Fbin bootdiag.s -o bootdiag.bin

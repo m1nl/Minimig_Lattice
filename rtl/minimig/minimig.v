@@ -146,8 +146,13 @@
 // SB:
 // 2012-03-23 - fixed sprite enable signal (coppermaster demo)
 
-module minimig
+module minimig #(parameter useaga=1'b1)
 (
+	// JTAG inputs
+	output sys_tdo,
+	input sys_tdi,
+	input sys_tck,
+	input sys_tms,
 	//m68k pins
 	input	[23:1] cpu_address,	// m68k address bus
 	output 	[15:0] cpu_data,	// m68k data bus
@@ -270,7 +275,7 @@ module minimig
   output  osd_pixel_out,
   output  rtg_ena,
   output  rtg_linecompare,
-  output reg ntsc = NTSC, //PAL/NTSC video mode selection
+  output reg ntscmode = 1'b0, //PAL/NTSC video mode selection
   input   ext_int2,	// External interrupt for Akiko
   input   ext_int6,	// External interrupt for AHI audio
   input [1:0] ram_64meg,
@@ -283,7 +288,7 @@ module minimig
 
 //--------------------------------------------------------------------------------------
 
-	parameter [0:0] NTSC = 1'b0;	//Agnus type (PAL/NTSC)
+//	parameter [0:0] NTSC = 1'b0;	//Agnus type (PAL/NTSC)
 
 //--------------------------------------------------------------------------------------
 
@@ -514,7 +519,7 @@ assign turbochipram = !ovl && cpu_config[2] && (&memory_config[1:0]);
 // turbo kickstart only when no overlay is active and cpu_config[3] (fast kick) enabled
 assign turbokick = !ovl && cpu_config[3];
 
-assign aga = chipset_config[4];
+assign aga = useaga ? chipset_config[4] : 1'b0;
 
 assign slow_config = memory_config[3:2];
 
@@ -522,7 +527,7 @@ assign slow_config = memory_config[3:2];
 always @(posedge clk)
   if (clk7_en) begin
   	if (reset)
-  		ntsc <= chipset_config[1];
+  		ntscmode <= chipset_config[1];
   end
 
 // vertical sync for the MCU
@@ -587,10 +592,10 @@ agnus AGNUS1
 	.disk_dmal(disk_dmal),
 	.disk_dmas(disk_dmas),
 	.bls(bls),
-	.ntsc(ntsc),
+	.ntsc(ntscmode),
   .a1k(chipset_config[2]),
 	.ecs(|chipset_config[4:3]),
-  .aga(chipset_config[4]),
+  .aga(aga),
 	.floppy_speed(floppy_config[0]),
 	.turbo(turbo),
 	.rtg_ena(rtg_ena),
@@ -625,7 +630,7 @@ paula PAULA1
 	.data_out(paula_data_out),
 	.txd(txd_i),
 	.rxd(rxd_i),
-  .ntsc(ntsc),
+  .ntsc(ntscmode),
 	.sof(sof),
   .strhor(strhor_paula),
   .vblint(vbl_int),
@@ -808,16 +813,16 @@ denise DENISE1
 	.strhor(strhor_denise),
 	.reg_address_in(reg_address),
 	.data_in(custom_data_in),
-  .chip48(chip48),
+	.chip48(chip48),
 	.data_out(denise_data_out),
 	.blank(blank),
 	.blank_out(cblank),
 	.red(red_i),
 	.green(green_i),
 	.blue(blue_i),
-  .a1k(chipset_config[2]),
-  .ecs(|chipset_config[4:3]),
-  .aga(chipset_config[4]),
+	.a1k(chipset_config[2]),
+	.ecs(|chipset_config[4:3]),
+	.aga(aga),
 	.hires_filter(hires)
 );
 
@@ -999,6 +1004,8 @@ minimig_m68k_bridge CPU1
   .host_ack (host_ack)
 );
 
+wire sel_drivesounds;
+
 //instantiate RAM banks mapper
 minimig_bankmapper BMAP1
 (
@@ -1088,7 +1095,6 @@ wire [7:0] toccata_base_addr; // IO base address for Toccata card
 wire [7:0] control_base_addr; // IO base address for control card
 wire [5:0] board_configured_i;// IO board configured
 
-wire sel_drivesounds;
 //instantiate gary
 gary GARY1 
 (
@@ -1145,6 +1151,11 @@ gary GARY1
 
 gayle GAYLE1
 (
+	// JTAG
+	.sys_tdo(sys_tdo),
+	.sys_tdi(sys_tdi),
+	.sys_tck(sys_tck),
+	.sys_tms(sys_tms),
 	.clk(clk),
 	.clk7_en(clk7_en),
 	.reset(reset),
@@ -1398,6 +1409,22 @@ assign _cpu_reset = ~(cpurst || sys_reset); //~(reset || cpurst);
 
 // minimig reset status
 assign rst_out = reset;
+
+//wire [63:0] jcapture_data;
+
+//assign jcapture_data = {_cpu_ipl,ext_int2,int2,gayle_irq};
+
+//jcapture jcap (
+	//.clk(clk),
+	//.reset_n(1'b1),
+	//.sys_tck(sys_tck),
+	//.sys_tdi(sys_tdi),
+	//.sys_tdo(sys_tdo),
+	//.sys_tms(sys_tms),
+	//.d(jcapture_data),
+	//.q(),
+	//.update()
+//);
 
 
 endmodule

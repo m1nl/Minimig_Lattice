@@ -31,9 +31,9 @@ use IEEE.numeric_std.ALL;
 entity akiko is
 generic
 	(
-		havertg : boolean := true;
-		haveaudio : boolean := true;
-		havec2p : boolean := true
+		havertg : integer := 1;
+		haveaudio : integer := 1;
+		havec2p : integer := 1
 	);
 port (
 	clk : in std_logic;
@@ -73,6 +73,7 @@ signal host_ack_d : std_logic;
 
 signal rtg_sel : std_logic;
 signal rtg_ack : std_logic;
+signal req_and_ct_sel : std_logic;
 
 signal ahi_sel : std_logic;
 signal ahi_q : std_logic_vector(15 downto 0);
@@ -87,13 +88,14 @@ id_sel <= '1' when addr(7 downto 2)=X"0"&"00" else '0';
 id_q <= X"C0CA" when addr(1)='0' else X"CAFE";
 id_ack<=req and id_sel;
 
+req_and_ct_sel <= req and ct_sel;
 
 -- Cornerturn for Chunky to Planar
 
 ct_sel <= '1' when addr(10 downto 8)="000" and addr(5 downto 2)="1110" else '0';	-- Cornerturn at 0xb80038 with mirrors at 78, b8 and f8 
 
 c2p:
-if havec2p=true generate
+if havec2p=1 generate
 myc2p: entity work.cornerturn
 port map
 (
@@ -102,13 +104,13 @@ port map
 	d => d,
 	q => ct_q,
 	wr => wr,
-	req => req and ct_sel,
+	req => req_and_ct_sel,
 	ack => ct_ack
 );
 end generate;
 
 noc2p:
-if havec2p=false generate
+if havec2p=0 generate
 	ct_ack<='0';
 end generate;
 
@@ -129,7 +131,7 @@ begin
 			audio_intena<='0';
 			audio_int<='0';
 			audio_ena<='0';
-		elsif haveaudio=true then
+		elsif haveaudio=1 then
 			-- Trigger an interrupt when the buffer flips
 			audio_buf_d <= audio_buf;
 			if audio_buf_d /= audio_buf then
@@ -151,6 +153,9 @@ begin
 					ahi_q(0)<=audio_buf;
 				end if;
 			end if;
+		else
+			audio_intena<='0';
+			audio_int<='0';
 		end if;	
 	end if;
 end process;
@@ -166,7 +171,7 @@ begin
 	if rising_edge(clk) then
 		rtg_reg_wr<='0';
 
-		if havertg=true then
+		if havertg=1 then
 	
 			-- RTG registers, includes a secondary framebuffer address to support
 			-- screen dragging.
