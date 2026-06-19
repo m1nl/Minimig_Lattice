@@ -151,15 +151,14 @@ always@(posedge SPI_CLK or posedge SPI_SS_IO) begin
 	end
 end
 
+reg       spi_receiver_strobe;
+reg       spi_transfer_end;
+reg       spi_receiver_strobeD;
+reg       spi_transfer_endD;
+reg [7:0] acmd;
+reg [7:0] abyte_cnt;   // counts bytes
 // Process bytes from SPI at the clk_sys domain
 always @(posedge clk_sys) begin
-
-	reg       spi_receiver_strobe;
-	reg       spi_transfer_end;
-	reg       spi_receiver_strobeD;
-	reg       spi_transfer_endD;
-	reg [7:0] acmd;
-	reg [7:0] abyte_cnt;   // counts bytes
 
 	//synchronize between SPI and sys clock domains
 	spi_receiver_strobeD <= spi_receiver_strobe_r;
