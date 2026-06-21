@@ -365,9 +365,9 @@ wire [7:0] VGA_G_INT = osd_window ? {osd_g,rtg_g[7:2]} : rtg_g;
 wire [7:0] VGA_B_INT = osd_window ? {osd_b,rtg_b[7:2]} : rtg_b;
 
 always @(posedge CLK_28) begin
-	VGA_CS_INT = cs;
-	VGA_HS_INT = hs;
-	VGA_VS_INT = vs;
+	VGA_CS_INT <= cs;
+	VGA_HS_INT <= hs;
+	VGA_VS_INT <= vs;
 end
 
 // Audio for CD images
