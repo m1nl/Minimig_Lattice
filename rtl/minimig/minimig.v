@@ -146,7 +146,7 @@
 // SB:
 // 2012-03-23 - fixed sprite enable signal (coppermaster demo)
 
-module minimig #(parameter useaga=1'b1, parameter wide_hblank=1'b0)
+module minimig #(parameter useaga=1'b1, parameter usertg=1'b1, parameter wide_hblank=1'b0)
 (
 	// JTAG inputs
 	output sys_tdo,
@@ -259,6 +259,7 @@ module minimig #(parameter useaga=1'b1, parameter wide_hblank=1'b0)
   output  turbokick,
   output  [1:0] slow_config,
   output  aga,
+  output  rtg,
   output  init_b,       // vertical sync for MCU (sync OSD update)
   output wire fifo_full,
   // fifo / track display
@@ -520,6 +521,7 @@ assign turbochipram = !ovl && cpu_config[2] && (&memory_config[1:0]);
 assign turbokick = !ovl && cpu_config[3];
 
 assign aga = useaga ? chipset_config[4] : 1'b0;
+assign rtg = usertg;
 
 assign slow_config = memory_config[3:2];
 
@@ -596,6 +598,7 @@ agnus #(.wide_hblank(wide_hblank)) AGNUS1
   .a1k(chipset_config[2]),
 	.ecs(|chipset_config[4:3]),
   .aga(aga),
+  .rtg(rtg),
 	.floppy_speed(floppy_config[0]),
 	.turbo(turbo),
 	.rtg_ena(rtg_ena),

@@ -24,7 +24,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 
-module agnus_beamcounter #(parameter wide_hblank=1'b0) 
+module agnus_beamcounter #(parameter wide_hblank=1'b0)
 (
 	input	clk,					// bus clock
 	input clk7_en,
@@ -32,7 +32,8 @@ module agnus_beamcounter #(parameter wide_hblank=1'b0)
 	input rd,	// Import read signal so we can guard against phantom writes to RTG
 	input	cck,					// CCK clock
 	input	ntsc,					// NTSC mode switch
-	input aga,
+	input   aga,
+	input   rtg,
 	input	ecs,					// ECS enable switch
 	input	a1k,					// enable A1000 VBL interrupt timing
 	input	[15:0] data_in,			// bus data in
@@ -71,7 +72,7 @@ reg		long_frame_r;		// 1 : long frame (313 lines); 0 : normal frame (312 lines)
 reg		long_line;		// long line signal for NTSC compatibility (actually long lines are not supported yet)
 reg		vser;			// vertical sync serration pulses for composite sync
 
-//register names and adresses		
+//register names and adresses
 parameter	VPOSR    = 9'h004;
 parameter	VPOSW    = 9'h02A;
 parameter	VHPOSR   = 9'h006;
@@ -148,7 +149,7 @@ always @ (posedge clk) begin
 		// Write to shadow register only in RTG mode when lpendis or displaydual are high
 		if(!rd && (data_in[13] || data_in[6]))
 			beamcon0_sh <= #1 data_in;
-		else // Otherwise update the non-shadowed reg 
+		else // Otherwise update the non-shadowed reg
 			beamcon0_reg <= #1 data_in;
     end
   end
@@ -164,7 +165,7 @@ wire cscben       = beamcon0_reg[10];
 wire varvsyen     = displaydual ? beamcon0_sh[9] :beamcon0_reg[ 9];
 wire varhsyen     = displaydual ? beamcon0_sh[8] :beamcon0_reg[ 8];
 wire varbeamen    = displaydual ? beamcon0_sh[7] :beamcon0_reg[ 7];
-wire displaydual  = beamcon0_sh[ 6];
+wire displaydual  = beamcon0_sh[ 6] && rtg;
 wire displaypal   = beamcon0_reg[ 5];
 wire varcsyen     = displaydual ? beamcon0_sh[4] :beamcon0_reg[ 4];
 wire blanken      = displaydual ? beamcon0_sh[3] :beamcon0_reg[ 3];
@@ -184,7 +185,7 @@ always @(posedge clk)
   	else if (reg_address_in[8:1] == BPLCON0[8:1])
   		ersy <= data_in[1];
   end
-		
+
 //BPLCON0 register
 always @(posedge clk)
   if (clk7_en) begin
@@ -327,7 +328,7 @@ reg [8:1] hpos_r;
 always @(posedge clk)
   if (clk7_en) begin
   	if (reg_address_in[8:1]==VHPOSW[8:1])
-  		hpos_r[8:1] <= data_in[7:0]; 
+  		hpos_r[8:1] <= data_in[7:0];
   	else if (end_of_line)
   		hpos_r[8:1] <= 0;
   	else if (cck && (~ersy || |hpos[8:1]))
@@ -391,11 +392,11 @@ always @(posedge clk)
   end
 
  assign long_frame = displaydual ? 1'b0 : long_frame_r;  // Don't want long frames in RTG mode
-  
+
 //maximum position of vertical beam position
 assign vpos_equ_vtotal = vpos==vtotal ? 1'b1 : 1'b0;
 
-//extra line in interlaced mode	
+//extra line in interlaced mode
 always @(posedge clk)
   if (clk7_en) begin
   	if (vpos_inc)
@@ -489,7 +490,7 @@ assign rtg_linecompare = vpos==bplhstrt_reg ? 1'b1 : 1'b0;
 // blank signal with a shift register.
 reg [11:0] hblank_delay;
 reg hblank_tmp;
-//composite display blanking		
+//composite display blanking
 always @(posedge clk)
 begin
 	if (clk7_en) begin
@@ -500,7 +501,7 @@ begin
 			hblank_out<=1'b1;
 		end
 		else if (hpos==hbstop) begin
-			hblank_out<=1'b0;	
+			hblank_out<=1'b0;
 			hblank_tmp<=vbl;
 		end
 //		if (hpos==hbstrt + 8'd12) //start of blanking (active line=51.88us)
