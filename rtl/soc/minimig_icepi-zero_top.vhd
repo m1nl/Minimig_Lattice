@@ -4,6 +4,7 @@ use ieee.numeric_std.all;
 
 library work;
 use work.minimig_virtual_pkg.all;
+use work.board_config.all;
 
 entity minimig_icepizero_top is
 port(
@@ -33,6 +34,8 @@ port(
 
 	usb_dp : inout std_logic_vector(1 downto 0);
 	usb_dn : inout std_logic_vector(1 downto 0);
+	usb_pull_dp : out std_logic_vector(1 downto 0);
+	usb_pull_dn : out std_logic_vector(1 downto 0);
 
 	gpio : inout std_logic_vector(27 downto 0);
 
@@ -60,6 +63,7 @@ architecture rtl of minimig_icepizero_top is
 	signal clk_sys : std_logic;
 	signal clk_pixel : std_logic;
 	signal clk_tmds : std_logic;
+	signal clk_usb : std_logic;
 
 	signal dvi_red : std_logic_vector(7 downto 0);
 	signal dvi_green : std_logic_vector(7 downto 0);
@@ -79,6 +83,8 @@ architecture rtl of minimig_icepizero_top is
 	signal joyc : std_logic_vector(6 downto 0);
 	signal joyd : std_logic_vector(6 downto 0);
 
+	signal auxclks : std_logic_vector(3 downto 0);
+
 	component ODDRX1F
 	port (
 		D0 : in std_logic;
@@ -88,6 +94,8 @@ architecture rtl of minimig_icepizero_top is
 		RST : in std_logic
 	); end component;
 begin
+	usb_pull_dp <= (others => '0');
+	usb_pull_dn <= (others => '0');
 
 	ddr_sdramclk: ODDRX1F port map (D0=>'0', D1=>'1', Q=>sdram_clk, SCLK=>clk_sys, RST=>'0');
 
@@ -98,12 +106,24 @@ begin
 	ps2m_clk_in <= '1';
 	ps2m_dat_in <= '1';
 
-	joya<=(others=>'1');
-	joyb<=(others=>'1');
-	joyc<=(others=>'1');
-	joyd<=(others=>'1');
+	joya <= (others=>'1');
+	joyb <= (others=>'1');
+	joyc <= (others=>'1');
+	joyd <= (others=>'1');
 
 	amiga_rxd <= '1';
+
+	auxpll : entity work.ecp5pll
+	generic map(
+		in_hz => natural(base_frequency),
+		out0_hz => natural(60e6), out0_tol_hz => 1e4
+	)
+	port map (
+		clk_i => clk,
+		clk_o => auxclks
+	);
+
+	clk_usb <= auxclks(0);
 
 	virtual_top : COMPONENT minimig_virtual_top
 	generic map
@@ -125,6 +145,7 @@ begin
 	PORT map
 		(
 			CLK_IN => clk,
+			CLK_USB_IN => clk_usb,
 			CLK_114 => clk_sys,
 			CLK_28 => clk_pixel,
 			CLK_142 => clk_tmds,
@@ -199,8 +220,8 @@ begin
 			VIDEO_RATE : integer := 28571400;
 			AUDIO_RATE : integer := 48000;
 			AUDIO_BIT_WIDTH : integer := 24;
-			VENDOR_NAME : std_logic_vector(8*8-1 downto 0) := x"556E6B6E6F776E00";  -- "Unknown" + zero padding
-			PRODUCT_DESCRIPTION : std_logic_vector(8*16-1 downto 0) := x"46504741000000000000000000000000"; -- "FPGA" + padding
+			VENDOR_NAME : std_logic_vector(8*8-1 downto 0) := x"4100000000000000";  -- "A" + zero padding
+			PRODUCT_DESCRIPTION : std_logic_vector(8*16-1 downto 0) := x"41000000000000000000000000000000"; -- "FPGA" + padding
 			SOURCE_DEVICE_INFORMATION : std_logic_vector(7 downto 0) := x"09"
 		);
 		port (
@@ -287,4 +308,4 @@ begin
 		gpdi_dp <= tmds_clock & tmds;
 	end block;
 end architecture;
-
+-- vim: set noexpandtab tabstop=2 shiftwidth=2 softtabstop=0:

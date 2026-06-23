@@ -30,12 +30,15 @@ package minimig_virtual_pkg is
 		sys_tck : in std_logic := '1';
 		sys_tms : in std_logic := '1';
 
+		CLK_IN 		:   in std_logic;
+		CLK_USB_IN 	:   in std_logic;
+		RESET_N 	:   in STD_LOGIC;
+
 		CLK_114		:	 out STD_LOGIC;
 		CLK_28		:	 out STD_LOGIC;
 		CLK_142		:	 out STD_LOGIC;
-		CLK_IN 		:   in std_logic;
 		PLL_LOCKED  :   out std_logic;
-		RESET_N 		:   in STD_LOGIC;
+
 		MENU_BUTTON :   IN STD_LOGIC;
 		LED_POWER	:	 OUT STD_LOGIC;
 		LED_DISK		:	 OUT STD_LOGIC;

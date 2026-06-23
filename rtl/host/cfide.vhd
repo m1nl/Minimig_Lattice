@@ -1,7 +1,7 @@
 ------------------------------------------------------------------------------
 ------------------------------------------------------------------------------
 --                                                                          --
--- Copyright (c) 2008-2011 Tobias Gubener                                   -- 
+-- Copyright (c) 2008-2011 Tobias Gubener                                   --
 -- Subdesign fAMpIGA by TobiFlex                                            --
 --                                                                          --
 -- This source file is free software: you can redistribute it and/or modify --
@@ -19,10 +19,9 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 ------------------------------------------------------------------------------
--- Modifications by Alastair M. Robinson to work with a cheap 
+-- Modifications by Alastair M. Robinson to work with a cheap
 -- Ebay Cyclone III board.
 
- 
 library IEEE;
 use IEEE.std_logic_1164.all;
 use IEEE.numeric_std.all;
@@ -37,18 +36,20 @@ entity cfide is
 		haveclockport : integer := 0;
 		haveamiga : integer := 0
 	);
-   port ( 
+	port (
 		sysclk	: in std_logic;
+		usbclk  : in std_logic;
+
 		n_reset	: in std_logic;
-		
+
 		addr	: in std_logic_vector(31 downto 2);
-		d		: in std_logic_vector(15 downto 0);	
-		q		: out std_logic_vector(15 downto 0);		
+		d		: in std_logic_vector(15 downto 0);
+		q		: out std_logic_vector(15 downto 0);
 		req 	: in std_logic;
 		wr 	: in std_logic;
 		ack 	: buffer std_logic;
 
-		sd_di		: in std_logic;		
+		sd_di		: in std_logic;
 		sd_cs 	: out std_logic_vector(7 downto 0);
 		sd_clk 	: out std_logic;
 		sd_do		: out std_logic;
@@ -59,12 +60,12 @@ entity cfide is
 		menu_button	: in std_logic:='1';
 		scandoubler	: out std_logic;
 		invertsync : out std_logic;
-		
+
 		audio_ena : out std_logic;
 		audio_clear : out std_logic;
 		audio_buf : in std_logic;
 		audio_amiga : in std_logic;
-		
+
 		vbl_int	: in std_logic;
 		interrupt	: out std_logic;
 		c64_keys	: in std_logic_vector(63 downto 0) :=X"FFFFFFFFFFFFFFFF";
@@ -78,21 +79,21 @@ entity cfide is
 		amiga_req : in std_logic;
 		amiga_wr : in std_logic;
 		amiga_ack : out std_logic;
-		
+
 		rtc_q : out std_logic_vector(63 downto 0);
 		reconfig : out std_logic;
 		iecserial : out std_logic;
-		
+
 		usb_dp : inout std_logic_vector(1 downto 0);
 		usb_dn : inout std_logic_vector(1 downto 0);
-		
+
 		usb_connected : out std_logic_vector(1 downto 0);
 		joykeys : out std_logic_vector(6 downto 0);
 
 		-- 28Mhz signals
 		clk_28	: in std_logic;
 		tick_in : in std_logic	-- 44.1KHz - makes it easy to keep timer in lockstep with audio.
-   );
+);
 
 end cfide;
 
@@ -160,7 +161,7 @@ begin
 -- Peripheral registers are only 16-bits wide.
 
 q(15 downto 0) <=	IOdata WHEN rs232_select='1' or SPI_select='1' ELSE
-		std_logic_vector(timecnt(23 downto 8)) when timer_select='1' ELSE 
+		std_logic_vector(timecnt(23 downto 8)) when timer_select='1' ELSE
 		audio_q when audio_select='1' else
 		keyboard_q when keyboard_select='1' else
 		amigatohost when amiga_select='1' else
@@ -255,8 +256,8 @@ begin
 			else
 				amigatohost<=amiga_req&amiga_wr&"000000"&amiga_addr;
 			end if;
-		
-		end if;	
+
+		end if;
 	end if;
 end process;
 end generate;
@@ -329,19 +330,19 @@ begin
 		invertsync<='0';
 	elsif rising_edge(clk_28) then
 		if req='1' and wr='1' then
-		
+
 			if platform_select='1' then	-- Write to platform registers
 				scandoubler<=d(0);
 				invertsync<=d(1);
 				reconfig<=d(3);
 				iecserial<=d(4);
 			end if;
-			
+
 			if audio_select='1' then
 				audio_clear<=d(1);
 				audio_ena<=d(0);
 			end if;
-			
+
 		end if;
 	end if;
 end process;
@@ -352,7 +353,7 @@ end process;
 -----------------------------------------------------------------
 process(sysclk, shift)
 begin
-  	IF rising_edge(sysclk) THEN
+	IF rising_edge(sysclk) THEN
 --		support_state <= idle;
 		IOcpuena <= '0';
 		CASE support_state IS
@@ -373,35 +374,35 @@ begin
 						IOcpuena <= '1';
 					END IF;
 				END IF;
-					
+
 			WHEN io_aktion =>
 				if req='0' then
 					support_state <= idle;
 				else
 					IOcpuena <= '1';
 				end if;
-				
-			WHEN OTHERS => 
+
+			WHEN OTHERS =>
 				support_state <= idle;
 		END CASE;
-	END IF;	
-end process; 
+	END IF;
+end process;
 
 -----------------------------------------------------------------
 -- SPI-Interface
------------------------------------------------------------------	
+-----------------------------------------------------------------
 	sd_cs <= NOT scs;
 	sd_clk <= NOT sck;
 	sd_do <= sd_out(15);
 	SD_busy <= shiftcnt(13);
-	
+
 	PROCESS (sysclk, n_reset, scs, sd_di, sd_dimm) BEGIN
 		IF scs(1)='0' and scs(7)='0' THEN
 			sd_di_in <= sd_di;
 		ELSE
 			sd_di_in <= sd_dimm;
 		END IF;
-		IF n_reset ='0' THEN 
+		IF n_reset ='0' THEN
 			shiftcnt <= (OTHERS => '0');
 			spi_div <= (OTHERS => '0');
 			scs <= (OTHERS => '0');
@@ -414,13 +415,13 @@ end process;
 		ELSIF rising_edge(sysclk) THEN
 
 			spi_wait_d<=spi_wait;
-			
+
 			if spi_wait_d='1' and sd_ack='1' then -- Unpause SPI as soon as the IO controller has written to the MUX
 				spi_wait<='0';
 			end if;
 
 			IF SPI_select='1' AND req='1' and wr='1' AND SD_busy='0' THEN	 --SD write
-				case addr(3 downto 2) is				
+				case addr(3 downto 2) is
 					when "10" => -- 8
 						spi_speed <= unsigned(d(7 downto 0));
 					when "01" => -- 4
@@ -498,7 +499,7 @@ end process;
 				END IF;
 			END IF;
 
-		END IF;		
+		END IF;
 	END PROCESS;
 
 -----------------------------------------------------------------
@@ -516,7 +517,7 @@ begin
 
 	if n_reset='0' then
 		shiftout <= '0';
-		shift <= "0000000000"; 
+		shift <= "0000000000";
 		clkgen<=CLKGEN_28_115;
 	elsif rising_edge(clk_28) then
 		if uart_ld = '1' then
@@ -524,14 +525,14 @@ begin
 		end if;
 		if clkgen/=0 then
 			clkgen <= clkgen-1;
-		else	
+		else
 --			clkgen <= "1111011001";--985;		--113.5MHz/115200
 			clkgen <= CLKGEN_28_115;--246;		--28.36MHz/115200
 			shiftout <= not shift(0) and txbusy;
 			shift <=  '0' & shift(9 downto 1);
 		end if;
 	end if;
-end process; 
+end process;
 
 
 -----------------------------------------------------------------
@@ -539,116 +540,266 @@ end process;
 -----------------------------------------------------------------
 process(clk_28)
 begin
-  	IF rising_edge(clk_28) THEN
+	IF rising_edge(clk_28) THEN
 		if tick_in='1' then
 			timecnt <= timecnt+1;
 		END IF;
 	end if;
-end process; 
+end process;
 
 	-- USB
 
-	usbblock : block
-		component usb_hid_host is
+usbblock : block
+	signal usb_dp_o  : std_logic_vector(1 downto 0);
+	signal usb_dn_o  : std_logic_vector(1 downto 0);
+	signal usb_oe : std_logic_vector(1 downto 0);
+
+	signal rom_addra : std_logic_vector(9 downto 0);
+	signal rom_douta : std_logic_vector(3 downto 0);
+	signal rom_ena   : std_logic;
+
+	signal rom_addrb : std_logic_vector(9 downto 0);
+	signal rom_doutb : std_logic_vector(3 downto 0);
+	signal rom_enb   : std_logic;
+
+	signal usbreset       : std_logic;
+	signal usbreset_sync1 : std_logic;
+	signal usbreset_sync2 : std_logic;
+
+	signal usb_typ_0 : std_logic_vector(1 downto 0);
+	signal usb_typ_1 : std_logic_vector(1 downto 0);
+
+	component usb_hid_host
 		generic (
-			fifodepth : integer := 6
+			FULL_SPEED       : integer := 1;
+			KEYBOARD_SUPPORT : integer := 1;
+			MOUSE_SUPPORT    : integer := 1;
+			GAME_SUPPORT     : integer := 1
 		);
 		port (
-			usbclk : in std_logic;
-			usbrst_n : in std_logic;
-			usbtick : in std_logic;
-			usb_dm : inout std_logic_vector(1 downto 0);
-			usb_dp : inout std_logic_vector(1 downto 0);
-			atn : out std_logic;
-			connected : out std_logic_vector(1 downto 0);
-			q : out std_logic_vector(15 downto 0);
-			ack : in std_logic
+			clk   : in  std_logic;
+			reset : in  std_logic;
+			cs    : in  std_logic;
+
+			usb_dm_i : in  std_logic;
+			usb_dp_i : in  std_logic;
+			usb_dm_o : out std_logic;
+			usb_dp_o : out std_logic;
+			usb_oe   : out std_logic;
+
+			typ         : out std_logic_vector(1 downto 0);
+			full_report : out std_logic;
+			connerr     : out std_logic;
+			busy        : out std_logic;
+
+			key_modifiers : out std_logic_vector(7 downto 0);
+			key_0         : out std_logic_vector(7 downto 0);
+			key_1         : out std_logic_vector(7 downto 0);
+			key_2         : out std_logic_vector(7 downto 0);
+			key_3         : out std_logic_vector(7 downto 0);
+			key_4         : out std_logic_vector(7 downto 0);
+			key_5         : out std_logic_vector(7 downto 0);
+
+			mouse_btn : out std_logic_vector(2 downto 0);
+			mouse_dx  : out signed(7 downto 0);
+			mouse_dy  : out signed(7 downto 0);
+
+			game_l   : out std_logic;
+			game_r   : out std_logic;
+			game_u   : out std_logic;
+			game_d   : out std_logic;
+
+			game_a   : out std_logic;
+			game_b   : out std_logic;
+			game_x   : out std_logic;
+			game_y   : out std_logic;
+			game_sel : out std_logic;
+			game_sta : out std_logic;
+
+			game_extra : out std_logic_vector(3 downto 0);
+
+			dbg_hid_report : out std_logic_vector(63 downto 0);
+			dbg_hid_regs   : out std_logic_vector(63 downto 0);
+
+			rom_addr : out std_logic_vector(9 downto 0);
+			rom_dout : in  std_logic_vector(3 downto 0);
+			rom_en   : out std_logic
 		);
-		end component;
-		
-		component frac_pulse is
+	end component;
+
+	component usb_hid_host_dual_rom
 		generic (
-			freq_in : integer;
-			freq_out : integer;
-			counterwidth : integer := 16
+			MEMORY_FILE : string := "usb_hid_host_rom.mem"
 		);
 		port (
 			clk : in std_logic;
-			reset_n : in std_logic;
-			q : out std_logic
-		);
-		end component;
 
-		signal usb_rst_n : std_logic;
-		signal usb_atn : std_logic;
-		signal usb_ack : std_logic;
-		signal usb_cnct : std_logic_vector(1 downto 0);
-		signal usb_data : std_logic_vector(15 downto 0);
-		signal usbtick : std_logic;
-		
+			addra : in  std_logic_vector(9 downto 0);
+			douta : out std_logic_vector(3 downto 0);
+			ena   : in  std_logic;
+
+			addrb : in  std_logic_vector(9 downto 0);
+			doutb : out std_logic_vector(3 downto 0);
+			enb   : in  std_logic
+		);
+	end component;
+begin
+	-- Drive outputs onto the bus
+	usb_dp(0) <= usb_dp_o(0) when usb_oe(0) = '1' else 'Z';
+	usb_dn(0) <= usb_dn_o(0) when usb_oe(0) = '1' else 'Z';
+	usb_dp(1) <= usb_dp_o(1) when usb_oe(1) = '1' else 'Z';
+	usb_dn(1) <= usb_dn_o(1) when usb_oe(1) = '1' else 'Z';
+
+	u_rom : usb_hid_host_dual_rom
+	generic map (
+		MEMORY_FILE => "../../rtl/usb_hid_host/rom/usb_hid_host_rom.mem"
+	)
+	port map (
+		clk   => usbclk,
+		addra => rom_addra,
+		douta => rom_douta,
+		ena   => '1',
+		addrb => rom_addrb,
+		doutb => rom_doutb,
+		enb   => '1'
+	);
+
+	u_usb_hid_host_0 : usb_hid_host
+	generic map (
+		FULL_SPEED       => 1,
+		KEYBOARD_SUPPORT => 1,
+		MOUSE_SUPPORT    => 1,
+		GAME_SUPPORT     => 1
+	)
+	port map (
+		clk   => usbclk,
+		reset => usbreset,
+		cs    => '1',
+
+		-- USB only
+		usb_dm_i => usb_dn(0),
+		usb_dp_i => usb_dp(0),
+		usb_dm_o => usb_dn_o(0),
+		usb_dp_o => usb_dp_o(0),
+		usb_oe   => usb_oe(0),
+
+		-- ROM only
+		rom_addr => rom_addra,
+		rom_dout => rom_douta,
+		rom_en   => rom_ena,
+
+		-- everything else unused
+		typ            => usb_typ_0,
+		full_report    => open,
+		connerr        => open,
+		busy           => open,
+
+		key_modifiers  => open,
+		key_0          => open,
+		key_1          => open,
+		key_2          => open,
+		key_3          => open,
+		key_4          => open,
+		key_5          => open,
+
+		mouse_btn      => open,
+		mouse_dx       => open,
+		mouse_dy       => open,
+
+		game_l         => open,
+		game_r         => open,
+		game_u         => open,
+		game_d         => open,
+
+		game_a         => open,
+		game_b         => open,
+		game_x         => open,
+		game_y         => open,
+		game_sel       => open,
+		game_sta       => open,
+
+		game_extra     => open,
+
+		dbg_hid_report => open,
+		dbg_hid_regs   => open
+	);
+
+	u_usb_hid_host_1 : usb_hid_host
+	generic map (
+		FULL_SPEED       => 1,
+		KEYBOARD_SUPPORT => 1,
+		MOUSE_SUPPORT    => 1,
+		GAME_SUPPORT     => 1
+	)
+	port map (
+		clk   => usbclk,
+		reset => usbreset,
+		cs    => '1',
+
+		-- USB only
+		usb_dm_i => usb_dn(1),
+		usb_dp_i => usb_dp(1),
+		usb_dm_o => usb_dn_o(1),
+		usb_dp_o => usb_dp_o(1),
+		usb_oe   => usb_oe(1),
+
+		-- ROM only
+		rom_addr => rom_addrb,
+		rom_dout => rom_doutb,
+		rom_en   => rom_enb,
+
+		-- everything else unused
+		typ            => usb_typ_1,
+		full_report    => open,
+		connerr        => open,
+		busy           => open,
+
+		key_modifiers  => open,
+		key_0          => open,
+		key_1          => open,
+		key_2          => open,
+		key_3          => open,
+		key_4          => open,
+		key_5          => open,
+
+		mouse_btn      => open,
+		mouse_dx       => open,
+		mouse_dy       => open,
+
+		game_l         => open,
+		game_r         => open,
+		game_u         => open,
+		game_d         => open,
+
+		game_a         => open,
+		game_b         => open,
+		game_x         => open,
+		game_y         => open,
+		game_sel       => open,
+		game_sta       => open,
+
+		game_extra     => open,
+
+		dbg_hid_report => open,
+		dbg_hid_regs   => open
+	);
+
+	process (usbclk, n_reset)
 	begin
+		if n_reset = '0' then
+			usbreset_sync1 <= '1';
+			usbreset_sync2 <= '1';
+		elsif rising_edge(usbclk) then
+			usbreset_sync1 <= '0';
+			usbreset_sync2 <= usbreset_sync1;
+		end if;
+	end process;
 
-		tick : component frac_pulse 
-		generic map (
-			freq_in => 113,
-			freq_out => 12
-		)
-		port map (
-			clk => sysclk,
-			reset_n => n_reset,
-			q => usbtick
-		);
+	usbreset <= usbreset_sync2;
 
-		host : component usb_hid_host 
-		port map (
-			usbclk => sysclk,
-			usbrst_n => usb_rst_n,
-			usbtick => usbtick,
-			usb_dm => usb_dn,
-			usb_dp => usb_dp,
-			atn => usb_atn,
-			connected => usb_cnct,
-			q => usb_data,
-			ack => usb_ack
-		);
+	usb_connected(0) <= usb_oe(0);
+	usb_connected(1) <= usb_oe(1);
+end block;
 
-		usb_connected <= usb_cnct;
-
-		process(sysclk) begin
-			if rising_edge(sysclk) then
-				usb_ack <= '0';
-				usb_rst_n <= '1';
-				if usb_select='1' and req='1' then
-					if wr='1' then
-						case addr(4 downto 2) is
-							when "000" =>
-								usb_rst_n <= '0';
-							when "010" =>
-								joykeys <= d(6 downto 0);
-							when others =>
-								null;
-						end case;					
-					else
-						case addr(4 downto 2) is
-							when "000" =>
-								usbtohost <= (0 => usb_atn, 1=>usb_cnct(0), 2=>usb_connected(1), others => '0');
-							when "001" =>
-								usbtohost <= usb_data;
-								usb_ack <= ack;  -- Ack and req should only be high simultaneously for one cycle.
-							when others =>
-								null;
-						end case;
-					end if;
-				end if;		
-				
-				if n_reset = '0' then
-					usb_rst_n <= '0';
-					joykeys <= (others => '1');
-				end if;
-			end if;
-		end process;
-	
-	end block;	
-	
-end;  
-
+end;
+-- vim: set noexpandtab tabstop=2 shiftwidth=2 softtabstop=0:

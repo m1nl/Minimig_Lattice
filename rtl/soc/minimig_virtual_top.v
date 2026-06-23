@@ -52,26 +52,28 @@ module minimig_virtual_top	#(
   input sys_tms,
   // clock inputs
   input wire            CLK_IN,
+  input wire            CLK_USB_IN,
+  input wire            RESET_N,
+  // clock outputs
   output wire           CLK_114,
   output wire           CLK_28,
   output wire           CLK_142,
   output wire           PLL_LOCKED,
-  input wire            RESET_N,
-  
+
   // Button inputs
   input						MENU_BUTTON,
-  
+
   // LED outputs
   output wire           LED_POWER,  // LED green
   output wire           LED_DISK,   // LED red
   output wire [1:0]     LED_USB,
-  
+
   // UART
   output wire           CTRL_TX,    // UART Transmitter
   input wire            CTRL_RX,    // UART Receiver
   output wire           AMIGA_TX,    // UART Transmitter
   input wire            AMIGA_RX,    // UART Receiver
-  
+
   // VGA
   output reg            VGA_HS,     // VGA H_SYNC
   output reg            VGA_VS,     // VGA V_SYNC
@@ -80,7 +82,7 @@ module minimig_virtual_top	#(
   output reg [  vga_width-1:0] VGA_B,      // VGA Blue[5:0]
   output reg            VGA_STROBE,
   output reg            VGA_DE,
-  
+
   // DVI
   output reg            DVI_HS,     // VGA H_SYNC
   output reg            DVI_VS,     // VGA V_SYNC
@@ -89,7 +91,7 @@ module minimig_virtual_top	#(
   output reg [  7:0]    DVI_B,      // VGA Blue[5:0]
   output                DVI_STROBE,
   output reg            DVI_DE,
-  
+
   // SDRAM
   inout  wire [ 16-1:0] SDRAM_DQ,   // SDRAM Data bus 16 Bits
   output wire [ 13-1:0] SDRAM_A,    // SDRAM Address bus 13 Bits
@@ -102,7 +104,7 @@ module minimig_virtual_top	#(
   output wire [  2-1:0] SDRAM_BA,   // SDRAM Bank Address
   output wire           SDRAM_CLK,  // SDRAM Clock
   output wire           SDRAM_CKE,  // SDRAM Clock Enable
-  
+
   // MINIMIG specific
   output wire[23:0]     AUDIO_L,    // sigma-delta DAC output left
   output wire[23:0]     AUDIO_R,    // sigma-delta DAC output right
@@ -127,19 +129,19 @@ module minimig_virtual_top	#(
   input       [  7-1:0] JOYB,         // joystick port B
   input       [  7-1:0] JOYC,         // joystick port A
   input       [  7-1:0] JOYD,         // joystick port B
-  
-  // SPI 
+
+  // SPI
   input wire            SD_MISO,     // inout
   output wire           SD_MOSI,
   output wire           SD_CLK,
   output wire           SD_CS,
   input wire            SD_ACK,
   output wire           RTC_CS,
-  
+
   inout wire [1:0]      usb_dp,
   inout wire [1:0]      usb_dn,
-  output wire				RECONFIG,
-  output wire				IECSERIAL,
+  output wire			RECONFIG,
+  output wire			IECSERIAL,
   input wire			FREEZE
 );
 
@@ -331,7 +333,7 @@ rtg_video rtg (
 	.fetch_d(rtg_fromram),
 	.fetch_ack(rtg_ramack),
 	.fetch_fill(rtg_fill),
-		
+
 	.amiga_r(red_amiga),
 	.amiga_g(green_amiga),
 	.amiga_b(blue_amiga),
@@ -411,7 +413,7 @@ end
 
 //  tick:   0 0 1 1 1 1 0 0
 //  tick_d: 0 0 0 1 1 1 1 0
-// tick^tick_d  1 0 0 0 1 0 
+// tick^tick_d  1 0 0 0 1 0
 always @(posedge CLK_114) begin
 	aud_tick_d<=aud_tick;
 	aud_next<=aud_tick ^ aud_tick_d;
@@ -419,26 +421,34 @@ always @(posedge CLK_114) begin
 		aud_left<={aud_sample[7:0],aud_sample[15:8]};
 	else
 		aud_right<={aud_sample[7:0],aud_sample[15:8]};
-end	
+end
 
-// We can use the same type of FIFO as we use for video.
-VideoStream #(.fifodepth(9),.burstdepth(3),.signalwidth(16)) myaudiostream
-(
-	.clk(CLK_114),
-	.reset_n(aud_ena_host | aud_ena_cpu), // !aud_clear),
-	.enable(aud_ena_host | aud_ena_cpu),
-	.baseaddr(aud_baseaddr),
-	// SDRAM interface
-	.a(aud_addr),
-	.req(aud_ramreq),
-	.ack(aud_ramack),
-	.pri(aud_rampri),
-	.d(aud_fromram),
-	.fill(aud_fill & (haveaudio ? 1'b1 : 1'b0)),
-	// Display interface
-	.rdreq(aud_next & (haveaudio ? 1'b1 : 1'b0)),
-	.q(aud_sample)
-);
+generate
+	if (haveaudio) begin
+		// We can use the same type of FIFO as we use for video.
+		VideoStream #(.fifodepth(9),.burstdepth(3),.signalwidth(16)) myaudiostream
+		(
+			.clk(CLK_114),
+			.reset_n(aud_ena_host | aud_ena_cpu), // !aud_clear),
+			.enable(aud_ena_host | aud_ena_cpu),
+			.baseaddr(aud_baseaddr),
+			// SDRAM interface
+			.a(aud_addr),
+			.req(aud_ramreq),
+			.ack(aud_ramack),
+			.pri(aud_rampri),
+			.d(aud_fromram),
+			.fill(aud_fill),
+			// Display interface
+			.rdreq(aud_next),
+			.q(aud_sample)
+		);
+	end else begin
+		assign aud_ramreq = 0;
+		assign aud_rampri = 0;
+		assign aud_sample = 0;
+	end
+endgenerate
 
 wire clk_56;
 
@@ -579,7 +589,7 @@ sdram_ctrl sdram (
   .sd_cas       (SDRAM_nCAS       ),
   .sysclk       (CLK_114          ),
   .reset_in     (sdctl_rst        ),
-  
+
   .hostWR       (hostWR           ),
   .hostAddr     (hostaddr         ),
   .hostwe       (host_we           ),
@@ -892,8 +902,9 @@ cfide #(
 	.haveiec(haveiec),
 	.havereconfig(havereconfig),
 	.havecart(havecart)
-) mycfide ( 
+) mycfide (
 		.sysclk(CLK_114),
+		.usbclk(CLK_USB_IN),
 		.n_reset(reset_out),
 
 		.addr(hostaddr),
@@ -915,7 +926,7 @@ cfide #(
 		.menu_button(MENU_BUTTON),
 		.scandoubler(_15khz),
 		.invertsync(invertsync),
-		
+
 		.audio_ena(aud_ena_host),
 		.audio_clear(aud_clear),
 		.audio_buf(aud_addr[15]),
@@ -936,17 +947,17 @@ cfide #(
 		.rtc_q(rtc),
 		.reconfig(RECONFIG),
 		.iecserial(IECSERIAL),
-		
+
 		.usb_dp(usb_dp),
 		.usb_dn(usb_dn),
 		.usb_connected(LED_USB),
-		
+
 		.joykeys(joykeys),
 
 		.clk_28(CLK_28),
 		.tick_in(aud_tick)
 	);
-	
+
 assign joysticka = JOYA;
 assign joystickb = JOYB & joykeys;
 
@@ -990,8 +1001,8 @@ video_vga_dither #(.outbits(vga_width), .flickerreduce(1)) dither
 	.oGreen(dithered_green),
 	.oBlue(dithered_blue)
 );
-	
-		
+
+
 always @(posedge CLK_114) begin
 	if(haveaga) begin
 		VGA_VS <= dithered_vs ^ (vsyncpol & !selcsync);
@@ -1034,4 +1045,3 @@ edge_capture #(.bits(2)) synccapture (
 `endif
 
 endmodule
-

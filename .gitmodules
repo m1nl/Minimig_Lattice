@@ -8,3 +8,6 @@
 	path = rtl/fpga-toccata
 	url = https://github.com/ranzbak/fpga-toccata
 
+[submodule "rtl/usb_hid_host"]
+	path = rtl/usb_hid_host
+	url = https://github.com/m1nl/usb_hid_host.git
