@@ -1228,7 +1228,7 @@ void HandleUI(void)
 		OsdWrite(4, s, menusub == 3,0);
 		strcpy(s, "     CD32Pad : ");
 		strcat(s, config_cd32pad_msg[(config.autofire >> 2) & 1]);
-		OsdWrite(5, s, menusub == 4,0);
+		OsdWrite(5, s, menusub == 4,1);
 		OsdWrite(6, "", 0,0);
 
         OsdWrite(7, STD_BACK, menusub == 5,0);
@@ -1301,9 +1301,9 @@ void HandleUI(void)
             else if (menusub == 4)
             {
 				/* CD32 pad */
-				config.autofire  = (config.autofire + 4) & 0x7;
-				menustate = MENU_SETTINGS_CHIPSET1;
-				ConfigAutofire(config.autofire);
+				// config.autofire  = (config.autofire + 4) & 0x7;
+				// menustate = MENU_SETTINGS_CHIPSET1;
+				// ConfigAutofire(config.autofire);
             }
             else if (menusub == 5)
             {
