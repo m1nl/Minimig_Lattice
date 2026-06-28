@@ -298,7 +298,7 @@ end generate;
 
 	sel_gayle_ide <= '0'; -- '1' when state(1 downto 0) = "10" and cpuaddr(31 downto 14)=X"00DA"&"00" else '0';
 
-	sel_akiko <= '1' when cpuaddr(31 downto 16)=X"00B8" else '0';
+	sel_akiko <= '1' when (cpuaddr(31 downto 16)=X"00B8" and (havertg = 1 or haveaudio = 1 or havec2p = 1)) else '0';
 	sel_32 <= '1' when cpu(1)='1' and cpuaddr(31 downto 24)/=X"00" and cpuaddr(31 downto 24)/=X"ff" else '0'; -- Decode 32-bit space, but exclude interrupt vectors
 	sel_z2ram       <= '1' WHEN (cpuaddr(31 downto 24) = X"00")
 	                         AND ((cpuaddr(23 downto 21) = "001")
