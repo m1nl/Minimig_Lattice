@@ -285,9 +285,7 @@ assign SDRAM_BA         = sdram_ba;
 assign pll_rst          = 1'b0;
 assign sdctl_rst        = PLL_LOCKED & RESET_N;
 
-
 // RTG support...
-
 wire rtg_ena;	// RTG screen on/off
 
 wire hblank_amiga;
@@ -314,53 +312,20 @@ wire rtg_fill;
 wire rtg_rampri;
 wire rtg_ramack;
 
-wire [7:0] rtg_r;	// RTG video data
+// RTG video data
+wire [7:0] rtg_r;
 wire [7:0] rtg_g;
 wire [7:0] rtg_b;
 
 wire rtg_pixel;
 
 wire selcsync;
+
 wire rtg_linecompare;
 wire rtg_ena_mm;
 wire rtg_de;
 
-rtg_video rtg (
-	.clk_114(CLK_114),
-	.clk_28(CLK_28),
-	.clk_vid(CLK_114),
-	.reset_n(RESET_N),
-	.rtg_ena(rtg_ena),
-	.rtg_linecompare(rtg_linecompare),
-	.reg_addr(rtg_reg_addr),
-	.reg_wr(rtg_reg_wr),
-	.reg_d(rtg_reg_d),
-
-	.fetch_addr(rtg_fetch_addr),
-	.fetch_req(rtg_ramreq),
-	.fetch_pri(rtg_rampri),
-	.fetch_d(rtg_fromram),
-	.fetch_ack(rtg_ramack),
-	.fetch_fill(rtg_fill),
-
-	.amiga_r(red_amiga),
-	.amiga_g(green_amiga),
-	.amiga_b(blue_amiga),
-	.amiga_hb(hblank_amiga),
-	.amiga_vb(vblank_amiga),
-	.amiga_hs(hs),
-	.amiga_blank(blank_amiga),
-
-	.red(rtg_r),
-	.green(rtg_g),
-	.blue(rtg_b),
-	.pixel(rtg_pixel),
-	.de(rtg_de)
-);
-
-
 // Overlaying of OSD graphics
-
 wire osd_window;
 wire osd_pixel;
 wire [1:0] osd_r;
@@ -376,11 +341,62 @@ wire [7:0] VGA_R_INT = osd_window ? {osd_r,rtg_r[7:2]} : rtg_r;
 wire [7:0] VGA_G_INT = osd_window ? {osd_g,rtg_g[7:2]} : rtg_g;
 wire [7:0] VGA_B_INT = osd_window ? {osd_b,rtg_b[7:2]} : rtg_b;
 
-always @(posedge CLK_28) begin
-	VGA_CS_INT <= cs;
-	VGA_HS_INT <= hs;
-	VGA_VS_INT <= vs;
-end
+generate
+	if (havertg) begin
+		rtg_video rtg (
+			.clk_114(CLK_114),
+			.clk_28(CLK_28),
+			.clk_vid(CLK_114),
+			.reset_n(RESET_N),
+			.rtg_ena(rtg_ena),
+			.rtg_linecompare(rtg_linecompare),
+			.reg_addr(rtg_reg_addr),
+			.reg_wr(rtg_reg_wr),
+			.reg_d(rtg_reg_d),
+			.fetch_addr(rtg_fetch_addr),
+			.fetch_req(rtg_ramreq),
+			.fetch_pri(rtg_rampri),
+			.fetch_d(rtg_fromram),
+			.fetch_ack(rtg_ramack),
+			.fetch_fill(rtg_fill),
+			.amiga_r(red_amiga),
+			.amiga_g(green_amiga),
+			.amiga_b(blue_amiga),
+			.amiga_hb(hblank_amiga),
+			.amiga_vb(vblank_amiga),
+			.amiga_hs(hs),
+			.amiga_blank(blank_amiga),
+			.red(rtg_r),
+			.green(rtg_g),
+			.blue(rtg_b),
+			.pixel(rtg_pixel),
+			.de(rtg_de)
+		);
+
+		always @(posedge CLK_28) begin
+			VGA_CS_INT <= cs;
+			VGA_HS_INT <= hs;
+			VGA_VS_INT <= vs;
+		end
+
+	end else begin
+		assign rtg_fetch_addr = 26'b0;
+		assign rtg_ramreq     = 1'b0;
+		assign rtg_rampri     = 1'b0;
+
+		assign rtg_r     = red_amiga;
+		assign rtg_g     = green_amiga;
+		assign rtg_b     = blue_amiga;
+		assign rtg_pixel = 1'b0;
+		assign rtg_de    = ~blank_amiga;
+
+		always @(*) begin
+			VGA_CS_INT = cs;
+			VGA_HS_INT = hs;
+			VGA_VS_INT = vs;
+		end
+	end
+endgenerate
 
 // Audio for CD images
 wire aud_int;
@@ -555,14 +571,14 @@ TG68K #(.usethrottle(usethrottle),
   .rtg_reg_addr(rtg_reg_addr),
   .rtg_reg_d(rtg_reg_d),
   .rtg_reg_wr(rtg_reg_wr),
-
-	.audio_buf(aud_addr[15]),
-	.audio_ena(aud_ena_cpu),
-	.audio_int(aud_int),
-	// Amiga to host signals
-	.host_req(amigahost_req),
-	.host_ack(amigahost_ack),
-	.host_q(amigahost_q)
+  // Audio signals
+  .audio_buf(aud_addr[15]),
+  .audio_ena(aud_ena_cpu),
+  .audio_int(aud_int),
+  // Amiga to host signals
+  .host_req(amigahost_req),
+  .host_ack(amigahost_ack),
+  .host_q(amigahost_q)
 );
 
 `endif
@@ -1038,19 +1054,17 @@ always @(posedge CLK_114) begin
 		VGA_B <= VGA_B_INT[7:8-vga_width];
 		VGA_STROBE <= rtg_ena ? rtg_pixel : vga_stb;
 		VGA_DE <= rtg_de;
-	end
+    end
 end
 
-always @(posedge CLK_114) begin
-	if(vga_stb) begin
-		DVI_VS <= VGA_VS_INT ^ (vsyncpol & !selcsync);
-		DVI_HS <= VGA_HS_INT ^ (hsyncpol & !selcsync);
+always @(*) begin
+	DVI_VS = VGA_VS_INT ^ (vsyncpol & !selcsync);
+	DVI_HS = VGA_HS_INT ^ (hsyncpol & !selcsync);
 
-		DVI_R <= VGA_R_INT;
-		DVI_G <= VGA_G_INT;
-		DVI_B <= VGA_B_INT;
-		DVI_DE <= rtg_de;
-	end
+	DVI_R = VGA_R_INT;
+	DVI_G = VGA_G_INT;
+	DVI_B = VGA_B_INT;
+	DVI_DE = rtg_de;
 end
 assign DVI_STROBE = vga_stb; // rtg_ena ? rtg_pixel : vga_stb;
 
