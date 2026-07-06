@@ -89,8 +89,8 @@ entity cfide is
 
 		usb_connected : out std_logic_vector(1 downto 0);
 
-		joya : out std_logic_vector(6 downto 0);
-		joyb : out std_logic_vector(6 downto 0);
+		joya : out std_logic_vector(10 downto 0);
+		joyb : out std_logic_vector(10 downto 0);
 
 		joy_invert : out std_logic := '0';
 
@@ -611,8 +611,8 @@ usbblock : block
 	signal hid_report_0 : std_logic_vector(63 downto 0);
 	signal hid_report_1 : std_logic_vector(63 downto 0);
 
-	signal hid_joy_0 : std_logic_vector(6 downto 0);
-	signal hid_joy_1 : std_logic_vector(6 downto 0);
+	signal hid_joy_0 : std_logic_vector(10 downto 0);
+	signal hid_joy_1 : std_logic_vector(10 downto 0);
 
 	signal hid_joy_0_sel_d : std_logic;
 	signal hid_joy_1_sel_d : std_logic;
@@ -927,7 +927,7 @@ begin
 							usbtohost_0 <= hid_report_0(63 downto 32);
 						when others =>
 							null;
-	end case;
+					end case;
 				end if;
 			end if;
 		end if;
@@ -970,10 +970,14 @@ begin
 				if hid_report_ready_0 = '1' then
 					hid_joy_0 <= not (
 											 usb_game_0(9) &
-											 (usb_game_0(5) or usb_game_0(11)) &
-											 (usb_game_0(4) or usb_game_0(13)) &
-											 (usb_game_0(2) or usb_game_0(10)) &
-											 (usb_game_0(3) or usb_game_0(12)) &
+											 usb_game_0(13) &
+											 usb_game_0(11) &
+											 usb_game_0(7) &
+											 usb_game_0(6) &
+											 usb_game_0(5) &
+											 usb_game_0(4) &
+											 usb_game_0(2) &
+											 usb_game_0(3) &
 											 usb_game_0(0) &
 											 usb_game_0(1)
 										 );
@@ -992,10 +996,14 @@ begin
 				if hid_report_ready_1 = '1' then
 					hid_joy_1 <= not (
 											 usb_game_1(9) &
-											 (usb_game_1(5) or usb_game_1(11)) &
-											 (usb_game_1(4) or usb_game_1(13)) &
-											 (usb_game_1(2) or usb_game_1(10)) &
-											 (usb_game_1(3) or usb_game_1(12)) &
+											 usb_game_1(13) &
+											 usb_game_1(11) &
+											 usb_game_1(7) &
+											 usb_game_1(6) &
+											 usb_game_1(5) &
+											 usb_game_1(4) &
+											 usb_game_1(2) &
+											 usb_game_1(3) &
 											 usb_game_1(0) &
 											 usb_game_1(1)
 										 );
