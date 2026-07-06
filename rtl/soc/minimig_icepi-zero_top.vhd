@@ -145,7 +145,7 @@ begin
 			vga_width => 8,
 			usethrottle => 0,
 			havecart => 0,
-			haveaga => 0,
+			haveaga => 1,
 			haventscswitch => 0
 		)
 	PORT map

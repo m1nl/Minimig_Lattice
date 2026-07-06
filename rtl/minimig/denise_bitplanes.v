@@ -33,38 +33,33 @@ module denise_bitplanes
   input   aga,
   input   [8:1] reg_address_in,   // register address
   input   [15:0] data_in,       // bus data in
-  input   [48-1:0] chip48,  // big chipram read
+  input   [15:0] chip16_r,
+  input   [1:0] chip16_idx,
   input   hires,             // high resolution mode select
   input   shres,             // super high resolution mode select
-  input  [8:0] hpos,        // horizontal position (70ns resolution)
+  input   [8:0] hpos,        // horizontal position (70ns resolution)
   output   [8:1] bpldata      // bitplane data out
 );
 
 
 //register names and adresses
-parameter BPLCON1 = 9'h102;
-parameter BPL1DAT = 9'h110;
-parameter BPL2DAT = 9'h112;
-parameter BPL3DAT = 9'h114;
-parameter BPL4DAT = 9'h116;
-parameter BPL5DAT = 9'h118;
-parameter BPL6DAT = 9'h11a;
-parameter BPL7DAT = 9'h11c;
-parameter BPL8DAT = 9'h11e;
-parameter FMODE   = 9'h1fc;
+parameter BPLCON1     = 9'h102;
+parameter BPLXDATBASE = 9'h110;
+parameter FMODE       = 9'h1fc;
 
 //local signals
+wire    selbpl0;        // select bitplane 0
+wire    selbpl1;        // select bitplane 1
+wire    selbpl2;        // select bitplane 2
+wire    selbpl3;        // select bitplane 3
+wire    selbpl4;        // select bitplane 4
+wire    selbpl5;        // select bitplane 5
+wire    selbpl6;        // select bitplane 6
+wire    selbpl7;        // select bitplane 7
+
 reg   [15:0] bplcon1;    // bplcon1 register
 reg   [15:0] fmode;     // fmod reg
-reg    [63:0] bpl1dat;    // buffer register for bit plane 2
-reg    [63:0] bpl2dat;    // buffer register for bit plane 2
-reg    [63:0] bpl3dat;    // buffer register for bit plane 3
-reg    [63:0] bpl4dat;    // buffer register for bit plane 4
-reg    [63:0] bpl5dat;    // buffer register for bit plane 5
-reg    [63:0] bpl6dat;    // buffer register for bit plane 6
-reg    [63:0] bpl7dat;    // buffer register for bit plane 5
-reg    [63:0] bpl8dat;    // buffer register for bit plane 6
-reg    load;        // bpl1dat written => load shif registers
+reg    load;        // bpl1dat written => load shift registers
 
 reg    [7:0] extra_delay_f0;  // extra delay when not alligned ddfstart
 reg    [7:0] extra_delay_f12;
@@ -74,6 +69,21 @@ reg    [7:0] pf1h;      // playfield 1 horizontal scroll
 reg    [7:0] pf2h;      // playfield 2 horizontal scroll
 reg    [7:0] pf1h_del;    // delayed playfield 1 horizontal scroll
 reg    [7:0] pf2h_del;    // delayed playfield 2 horizontal scroll
+
+//--------------------------------------------------------------------------------------
+
+// sprite register address decoder
+wire  selbplx;
+
+assign selbplx = BPLXDATBASE[8:4]==reg_address_in[8:4];
+assign selbpl0 = selbplx && reg_address_in[3:1]==3'd0;
+assign selbpl1 = selbplx && reg_address_in[3:1]==3'd1;
+assign selbpl2 = selbplx && reg_address_in[3:1]==3'd2;
+assign selbpl3 = selbplx && reg_address_in[3:1]==3'd3;
+assign selbpl4 = selbplx && reg_address_in[3:1]==3'd4;
+assign selbpl5 = selbplx && reg_address_in[3:1]==3'd5;
+assign selbpl6 = selbplx && reg_address_in[3:1]==3'd6;
+assign selbpl7 = selbplx && reg_address_in[3:1]==3'd7;
 
 //--------------------------------------------------------------------------------------
 
@@ -166,213 +176,131 @@ always @ (posedge clk) begin
   end
 end
 
-reg [47:0] chip48_fmode=0;
+//--------------------------------------------------------------------------------------
+// shared bitplane-shifter control
+//
+// The BRAM read pointer, shift index and shift/load timing are identical in
+// every plane (they depend only on load, c1, c3, fmode and the shared bank
+// count), so they are generated here ONCE instead of being replicated inside
+// each of the 8 denise_bitplane_shifter instances. Only the per-plane data
+// path (BRAM contents, shifter, scroller, output) lives in the shifter itself.
+//--------------------------------------------------------------------------------------
+
+wire [1:0] bpl_bankwr_idx;    // BRAM write bank index
+reg        bpl_bankwr_buf;    // BRAM write buffer select
+reg  [2:0] bpl_bankrd_idx;    // BRAM read bank index
+reg        bpl_bankrd_buf;    // BRAM read buffer select
+reg  [2:0] bpl_bankrd_num;    // BRAM max read bank index
+
+assign bpl_bankwr_idx = chip16_idx;
+
+always @(posedge clk) begin
+  if (clk7_en) begin
+    // generate load signal when plane 1 is written
+    load <= selbpl0;
+  end
+end
+
+reg [5:0] fmode_mask;    // fetchmode mask
+reg       shift;         // shifter enable
+reg [2:0] shiftidx;      // current shift index
+
+// c1 is the 7MHz clock, c3 the same clock shifted 90deg; together they mark
+// the four phases of a 7MHz period within the 28MHz clk domain
+wire ld_start   = selbpl0 & clk7_en;       // fetch start
+wire ld_pix     = load & ~c1 & ~c3;        // load first byte (c1,c3 = 0,0)
+wire idx_last   = &shiftidx;               // current byte shifted out
+wire fetch_next = shift & idx_last;        // time to advance to next byte
+wire reload     = fetch_next & (bpl_bankrd_idx != bpl_bankrd_num);
+wire shifter_load = ld_pix | reload;       // load strobe fed to every shifter
+
+// BRAM addresses shared by all planes (writes 16-bit, reads 8-bit)
+wire [2:0] ram_addra = {bpl_bankwr_buf, bpl_bankwr_idx};
+wire [3:0] ram_addrb = {bpl_bankrd_buf, bpl_bankrd_idx};
+
+// fetchmode mask
 always @ (*) begin
   case (fmode[1:0])
-    2'b11   : chip48_fmode[47:0] = chip48[47:0];
-    2'b10,
-    2'b01   : chip48_fmode[47:0] = {chip48[47:32], 32'h00000000};
-    default : chip48_fmode[47:0] = 48'h000000000000;
+    2'b00 : fmode_mask = 6'b00_1111;
+    2'b01,
+    2'b10 : fmode_mask = 6'b01_1111;
+    2'b11 : fmode_mask = 6'b11_1111;
   endcase
 end
 
+// shifter enable: lowres shifts once every 4 cycles, hires every other, shres always
+always @ (*) begin
+  if (shres)      shift = 1'b1;
+  else if (hires) shift = ~c1 ^ c3;
+  else            shift = ~c1 & ~c3;
+end
+
+// bank read/write address control
+always @ (posedge clk) begin
+  // one 7MHz cycle after bpldat0 write
+  if (load && clk7_en) begin
+    // switch write buffer for next transfer
+    bpl_bankwr_buf <= ~bpl_bankrd_buf;
+
+    // set number of banks to be read according to fmode
+    if (selbpl0) begin
+      case(fmode[1:0])
+        2'b11   : bpl_bankrd_num <= 0;
+        2'b10,
+        2'b01   : bpl_bankrd_num <= 4;
+        default : bpl_bankrd_num <= 2;
+      endcase
+    end
+  end
+
+  if (ld_start) begin
+    // switch reads to current write buffer and reset read bank index
+    bpl_bankrd_buf <= bpl_bankwr_buf;
+    bpl_bankrd_idx <= 3'd0;
+
+  end else if (shifter_load) begin
+    // advance BRAM read address in lockstep with the shifter reload
+    bpl_bankrd_idx <= bpl_bankrd_idx + 3'd1;
+  end
+end
+
+// shift index
+always @ (posedge clk) begin
+  if (shifter_load)
+    shiftidx <= 3'd0;
+  else if (shift)
+    shiftidx <= shiftidx + 3'd1;
+end
 
 //--------------------------------------------------------------------------------------
 
-//bitplane buffer register for plane 1
-always @(posedge clk)
-  if (clk7_en) begin
-    if (reg_address_in[8:1] == BPL1DAT[8:1])
-      bpl1dat <= {data_in,chip48_fmode};
+//instantiate the 8 bitplane parallel to serial converters; odd planes scroll
+//with playfield 1, even planes with playfield 2. All shared control is wired
+//in identically; only aen, scroll and out differ per plane.
+wire [7:0] selbpl = {selbpl7, selbpl6, selbpl5, selbpl4, selbpl3, selbpl2, selbpl1, selbpl0};
+
+genvar i;
+generate
+  for (i = 1; i <= 8; i = i + 1) begin : bplshft
+    denise_bitplane_shifter bplshft
+    (
+      .clk(clk),
+      .clk7_en(clk7_en),
+      .aen(selbpl[i-1]),
+      .shift(shift),
+      .shifter_load(shifter_load),
+      .ram_addra(ram_addra),
+      .ram_addrb(ram_addrb),
+      .bpl_dat(chip16_r),
+      .fmode_mask(fmode_mask),
+      .hires(hires),
+      .shres(shres),
+      .aga(aga),
+      .scroll((i % 2) ? pf1h_del : pf2h_del),  // odd plane -> pf1, even -> pf2
+      .out(bpldata[i])
+    );
   end
-
-//bitplane buffer register for plane 2
-always @(posedge clk)
-  if (clk7_en) begin
-    if (reg_address_in[8:1] == BPL2DAT[8:1])
-      bpl2dat <= {data_in,chip48_fmode};
-  end
-
-//bitplane buffer register for plane 3
-always @(posedge clk)
-  if (clk7_en) begin
-    if (reg_address_in[8:1] == BPL3DAT[8:1])
-      bpl3dat <= {data_in,chip48_fmode};
-  end
-
-//bitplane buffer register for plane 4
-always @(posedge clk)
-  if (clk7_en) begin
-    if (reg_address_in[8:1] == BPL4DAT[8:1])
-      bpl4dat <= {data_in,chip48_fmode};
-  end
-
-//bitplane buffer register for plane 5
-always @(posedge clk)
-  if (clk7_en) begin
-    if (reg_address_in[8:1] == BPL5DAT[8:1])
-      bpl5dat <= {data_in,chip48_fmode};
-  end
-
-//bitplane buffer register for plane 6
-always @(posedge clk)
-  if (clk7_en) begin
-    if (reg_address_in[8:1] == BPL6DAT[8:1])
-      bpl6dat <= {data_in,chip48_fmode};
-  end
-
-//bitplane buffer register for plane 7
-always @(posedge clk)
-  if (clk7_en) begin
-    if (reg_address_in[8:1] == BPL7DAT[8:1])
-      bpl7dat <= {data_in,chip48_fmode};
-  end
-
-//bitplane buffer register for plane 8
-always @(posedge clk)
-  if (clk7_en) begin
-    if (reg_address_in[8:1] == BPL8DAT[8:1])
-      bpl8dat <= {data_in,chip48_fmode};
-  end
-
-//generate load signal when plane 1 is written
-always @(posedge clk)
-  if (clk7_en) begin
-    load <= reg_address_in[8:1] == BPL1DAT[8:1] ? 1'b1 : 1'b0;
-  end
-
-//--------------------------------------------------------------------------------------
-
-//instantiate bitplane 1 parallel to serial converters, this plane is loaded directly from bus
-denise_bitplane_shifter bplshft1
-(
-  .clk(clk),
-  .clk7_en(clk7_en),
-  .c1(c1),
-  .c3(c3),
-  .load(load),
-  .hires(hires),
-  .shres(shres),
-  .fmode(fmode[1:0]),
-  .aga(aga),
-  .data_in(bpl1dat),
-  .scroll(pf1h_del),
-  .out(bpldata[1])
-);
-
-//instantiate bitplane 2 to 6 parallel to serial converters, (loaded from buffer registers)
-denise_bitplane_shifter bplshft2
-(
-  .clk(clk),
-  .clk7_en(clk7_en),
-  .c1(c1),
-  .c3(c3),
-  .load(load),
-  .hires(hires),
-  .shres(shres),
-  .fmode(fmode[1:0]),
-  .aga(aga),
-  .data_in(bpl2dat),
-  .scroll(pf2h_del),
-  .out(bpldata[2])
-);
-
-denise_bitplane_shifter bplshft3
-(
-  .clk(clk),
-  .clk7_en(clk7_en),
-  .c1(c1),
-  .c3(c3),
-  .load(load),
-  .hires(hires),
-  .shres(shres),
-  .fmode(fmode[1:0]),
-  .aga(aga),
-  .data_in(bpl3dat),
-  .scroll(pf1h_del),
-  .out(bpldata[3])
-);
-
-denise_bitplane_shifter bplshft4
-(
-  .clk(clk),
-  .clk7_en(clk7_en),
-  .c1(c1),
-  .c3(c3),
-  .load(load),
-  .hires(hires),
-  .shres(shres),
-  .fmode(fmode[1:0]),
-  .aga(aga),
-  .data_in(bpl4dat),
-  .scroll(pf2h_del),
-  .out(bpldata[4])
-);
-
-denise_bitplane_shifter bplshft5
-(
-  .clk(clk),
-  .clk7_en(clk7_en),
-  .c1(c1),
-  .c3(c3),
-  .load(load),
-  .hires(hires),
-  .shres(shres),
-  .fmode(fmode[1:0]),
-  .aga(aga),
-  .data_in(bpl5dat),
-  .scroll(pf1h_del),
-  .out(bpldata[5])
-);
-
-denise_bitplane_shifter bplshft6
-(
-  .clk(clk),
-  .clk7_en(clk7_en),
-  .c1(c1),
-  .c3(c3),
-  .load(load),
-  .hires(hires),
-  .shres(shres),
-  .fmode(fmode[1:0]),
-  .aga(aga),
-  .data_in(bpl6dat),
-  .scroll(pf2h_del),
-  .out(bpldata[6])
-);
-
-denise_bitplane_shifter bplshft7
-(
-  .clk(clk),
-  .clk7_en(clk7_en),
-  .c1(c1),
-  .c3(c3),
-  .load(load),
-  .hires(hires),
-  .shres(shres),
-  .fmode(fmode[1:0]),
-  .aga(aga),
-  .data_in(bpl7dat),
-  .scroll(pf1h_del),
-  .out(bpldata[7])
-);
-
-denise_bitplane_shifter bplshft8
-(
-  .clk(clk),
-  .clk7_en(clk7_en),
-  .c1(c1),
-  .c3(c3),
-  .load(load),
-  .hires(hires),
-  .shres(shres),
-  .fmode(fmode[1:0]),
-  .aga(aga),
-  .data_in(bpl8dat),
-  .scroll(pf2h_del),
-  .out(bpldata[8])
-);
-
+endgenerate
 
 endmodule
 

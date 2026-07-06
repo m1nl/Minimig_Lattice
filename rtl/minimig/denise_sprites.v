@@ -32,7 +32,8 @@ module denise_sprites
   input  [8:1] reg_address_in,  // register address input
   input  [8:0] hpos,        // horizontal beam counter
   input   [15:0] data_in,     // bus data in
-  input [47:0] chip48,
+  input   [15:0] chip16_r,
+  input   [1:0] chip16_idx,
   input  sprena,          // sprite enable signal
   input [3:0] esprm,
   input [3:0] osprm,
@@ -42,7 +43,7 @@ module denise_sprites
 );
 
 //register names and adresses
-parameter  SPRPOSCTLBASE = 9'h140;  //sprite data, position and control register base address
+parameter SPRPOSCTLBASE = 9'h140;  //sprite data, position and control register base address
 parameter FMODE         = 9'h1fc;
 
 //local signals
@@ -90,9 +91,8 @@ assign selspr7 = selsprx && reg_address_in[5:3]==3'd7    ? 1'b1 : 1'b0;
 
 //--------------------------------------------------------------------------------------
 
-
 // fmode reg
-reg  [16-1:0] fmode;
+reg  [15:0] fmode;
 
 always @ (posedge clk) begin
   if (clk7_en) begin
@@ -103,6 +103,19 @@ always @ (posedge clk) begin
   end
 end
 
+wire [1:0] spr_bankwr_idx;
+reg  [1:0] spr_bankrd_num;
+
+assign spr_bankwr_idx = chip16_idx;
+
+// set number of banks to be read according to fmode
+always @(*) begin
+  case(fmode[3:2])
+    2'b00   : spr_bankrd_num = 1;
+    2'b11   : spr_bankrd_num = 0;
+    default : spr_bankrd_num = 2;
+  endcase
+end
 
 // shift value
 reg shift;
@@ -113,7 +126,6 @@ always @ (*) begin
     default : shift = ~c1 & ~c3;
   endcase
 end
-
 
 // instantiate sprite 0
 denise_sprites_shifter sps0
@@ -126,7 +138,9 @@ denise_sprites_shifter sps0
   .hpos(hpos),
   .fmode(fmode),
   .shift(shift),
-  .chip48(chip48),
+  .spr_dat(chip16_r),
+  .spr_bankwr_idx(spr_bankwr_idx),
+  .spr_bankrd_num(spr_bankrd_num),
   .data_in(data_in),
   .sprdata(sprdat0),
   .attach(attach0)
@@ -143,7 +157,9 @@ denise_sprites_shifter sps1
   .hpos(hpos),
   .fmode(fmode),
   .shift(shift),
-  .chip48(chip48),
+  .spr_dat(chip16_r),
+  .spr_bankwr_idx(spr_bankwr_idx),
+  .spr_bankrd_num(spr_bankrd_num),
   .data_in(data_in),
   .sprdata(sprdat1),
   .attach(attach1)
@@ -160,7 +176,9 @@ denise_sprites_shifter sps2
   .hpos(hpos),
   .fmode(fmode),
   .shift(shift),
-  .chip48(chip48),
+  .spr_dat(chip16_r),
+  .spr_bankwr_idx(spr_bankwr_idx),
+  .spr_bankrd_num(spr_bankrd_num),
   .data_in(data_in),
   .sprdata(sprdat2),
   .attach(attach2)
@@ -177,7 +195,9 @@ denise_sprites_shifter sps3
   .hpos(hpos),
   .fmode(fmode),
   .shift(shift),
-  .chip48(chip48),
+  .spr_dat(chip16_r),
+  .spr_bankwr_idx(spr_bankwr_idx),
+  .spr_bankrd_num(spr_bankrd_num),
   .data_in(data_in),
   .sprdata(sprdat3),
   .attach(attach3)
@@ -194,7 +214,9 @@ denise_sprites_shifter sps4
   .hpos(hpos),
   .fmode(fmode),
   .shift(shift),
-  .chip48(chip48),
+  .spr_dat(chip16_r),
+  .spr_bankwr_idx(spr_bankwr_idx),
+  .spr_bankrd_num(spr_bankrd_num),
   .data_in(data_in),
   .sprdata(sprdat4),
   .attach(attach4)
@@ -211,7 +233,9 @@ denise_sprites_shifter sps5
   .hpos(hpos),
   .fmode(fmode),
   .shift(shift),
-  .chip48(chip48),
+  .spr_dat(chip16_r),
+  .spr_bankwr_idx(spr_bankwr_idx),
+  .spr_bankrd_num(spr_bankrd_num),
   .data_in(data_in),
   .sprdata(sprdat5),
   .attach(attach5)
@@ -228,7 +252,9 @@ denise_sprites_shifter sps6
   .hpos(hpos),
   .fmode(fmode),
   .shift(shift),
-  .chip48(chip48),
+  .spr_dat(chip16_r),
+  .spr_bankwr_idx(spr_bankwr_idx),
+  .spr_bankrd_num(spr_bankrd_num),
   .data_in(data_in),
   .sprdata(sprdat6),
   .attach(attach6)
@@ -245,7 +271,9 @@ denise_sprites_shifter sps7
   .hpos(hpos),
   .fmode(fmode),
   .shift(shift),
-  .chip48(chip48),
+  .spr_dat(chip16_r),
+  .spr_bankwr_idx(spr_bankwr_idx),
+  .spr_bankrd_num(spr_bankrd_num),
   .data_in(data_in),
   .sprdata(sprdat7),
   .attach(attach7)

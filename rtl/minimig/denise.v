@@ -90,10 +90,38 @@ wire  [15:0] rgb_out;      // RGB data_out (rdram)
 
 reg    display_ena;          // in OCS sprites are visible between first write to BPL1DAT and end of scanline
 
+reg   [63:0] data64_in_r;
+
+reg   [15:0] chip16_r;
+reg    [1:0] chip16_idx;
+
 //--------------------------------------------------------------------------------------
 
 // data out multiplexer
 assign data_out = col_out | deniseid_out | rgb_out;
+
+// register full 64-bit word for sprites and bitplanes
+always @ (posedge clk) begin
+  chip16_idx <= chip16_idx + 1;
+
+  if (clk7_en) begin
+    data64_in_r <= {data_in, chip48};
+    chip16_idx  <= 0;
+  end
+end
+
+// provide 16-bit CHIP word according to index
+always @(*) begin
+  chip16_r = data64_in_r[63:48];
+
+  case (chip16_idx)
+    0: chip16_r = data64_in_r[63:48];
+    1: chip16_r = data64_in_r[47:32];
+    2: chip16_r = data64_in_r[31:16];
+    3: chip16_r = data64_in_r[15: 0];
+    default: ;
+  endcase
+end
 
 //--------------------------------------------------------------------------------------
 
@@ -337,7 +365,8 @@ denise_bitplanes bplm0
   .aga(aga),
   .reg_address_in(reg_address_in),
   .data_in(data_in),
-  .chip48(chip48),
+  .chip16_r(chip16_r),
+  .chip16_idx(chip16_idx),
   .hires(hires),
   .shres(shres & ecs),
   .hpos(hpos),
@@ -386,7 +415,8 @@ denise_sprites sprm0
   .reg_address_in(reg_address_in),
   .hpos(hpos),
   .data_in(data_in),
-  .chip48(chip48),
+  .chip16_r(chip16_r),
+  .chip16_idx(chip16_idx),
   .sprena(display_ena | brdsprt),
   .esprm(esprm),
   .osprm(osprm),

@@ -141,7 +141,7 @@
         <Source name="../../rtl/minimig/ciab.v" type="Verilog" type_short="Verilog">
             <Options/>
         </Source>
-        <Source name="../../rtl/minimig/debug.v" type="Verilog" type_short="Verilog">
+        <Source name="../../rtl/minimig/debug.v" type="Verilog" type_short="Verilog" excluded="TRUE">
             <Options/>
         </Source>
         <Source name="../../rtl/minimig/denise.v" type="Verilog" type_short="Verilog">
@@ -427,6 +427,12 @@
             <Options/>
         </Source>
         <Source name="../../rtl/tg68k/TG68KdotC_Kernel.vhd" type="VHDL" type_short="VHDL" excluded="TRUE">
+            <Options/>
+        </Source>
+        <Source name="../../rtl/lattice/sprite_ram.v" type="Verilog" type_short="Verilog">
+            <Options/>
+        </Source>
+        <Source name="../../rtl/lattice/bitplane_ram.v" type="Verilog" type_short="Verilog">
             <Options/>
         </Source>
         <Source name="eightthirtytwo_multicycles.sdc" type="Synplify Design Constraints File" type_short="SDC">
