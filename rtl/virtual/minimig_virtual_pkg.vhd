@@ -19,10 +19,11 @@ package minimig_virtual_pkg is
 	  havertg : integer := 1;
 	  haveaudio : integer := 1;
 	  havec2p : integer := 1;
+	  haveamigahost : integer := 1;
 	  havespirtc : integer := 0;
 	  havecart : integer := 1;
-	  haveaga : integer := 1;
-	  haventscswitch : integer := 1
+	  havevideofilter : integer := 1;
+	  haveaga : integer := 1
 	);
 	PORT
 	(
