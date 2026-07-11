@@ -20,7 +20,7 @@
 // This is the top module for the Minimig rev1.0 board
 //
 // 19-03-2005 	-started coding
-// 10-04-2005	-added cia's 
+// 10-04-2005	-added cia's
 //				-verified timers a/b and I/O ports
 // 11-04-2005	-adapted top to cleaned up address decoder
 //				-connected cia's to .clk(~qclk) and .tick(e) for testing
@@ -80,7 +80,7 @@
 //	- scan doubler with vertical and horizontal interpolation
 //	- transparent osd window
 //	- selected osd line highlight
-//	- osd control by joystick (up and down pressed simultaneously invoke menu) 
+//	- osd control by joystick (up and down pressed simultaneously invoke menu)
 //	- memory configuration from osd (512KB chip, 1MB chip, 512KB chip/512KB slow, 1MB chip/512KB slow)
 //	- video interpolation filter configuration from osd (vertical and horizontal)
 //	- user reset accessible from osd
@@ -90,13 +90,13 @@
 //	- PAL/NTSC selection
 //	- modified display dma engine (better compatibility)
 //	- modified sprite dma engine (better compatibility)
-//	- modified copper timing (better compatibility) 
+//	- modified copper timing (better compatibility)
 //	- modified floppy interface (better read and write support)
 //	- Action Replay III module for debugging (takes 512KB memory bank)
 //
 // Thanks to:
 // Dennis for his great Minimig
-// Loriano for impressive enclosure 
+// Loriano for impressive enclosure
 // Darrin and Oscar for their ideas, support and help
 // Toni for his indispensable help and logic analyzer (and WinUAE :-)
 //
@@ -146,7 +146,7 @@
 // SB:
 // 2012-03-23 - fixed sprite enable signal (coppermaster demo)
 
-module minimig #(parameter ntscswitch=1'b1, parameter useaga=1'b1, parameter usertg=1'b1, parameter wide_hblank=1'b0)
+module minimig #(parameter usevideofilter=1'b1, parameter useaga=1'b1, parameter usertg=1'b1, parameter wide_hblank=1'b0)
 (
 	// JTAG inputs
 	output sys_tdo,
@@ -159,137 +159,136 @@ module minimig #(parameter ntscswitch=1'b1, parameter useaga=1'b1, parameter use
 	output 	[15:0] cpu_data2,	// m68k data bus 2nd word
 	input	[15:0] cpudata_in,	// m68k data in
 	output	[2:0] _cpu_ipl,		// m68k interrupt request
-	input   fast_rd,            // Fast read for Gayle IDE
-	input	_cpu_as,			// m68k address strobe
-	input	_cpu_uds,			// m68k upper data strobe
-	input	_cpu_lds,			// m68k lower data strobe
+	input	 fast_rd,		// Fast read for Gayle IDE
+	input	_cpu_as,		// m68k address strobe
+	input	_cpu_uds,		// m68k upper data strobe
+	input	_cpu_lds,		// m68k lower data strobe
 	input	_cpu_uds2,		// m68k upper data strobe 2nd word
 	input	_cpu_lds2,		// m68k lower data strobe 2nd word
-	input	cpu_r_w,			// m68k read / write
-	output	_cpu_dtack,			// m68k data acknowledge
-	output	_cpu_reset,			// m68k reset
-  input _cpu_reset_in,    // m68k reset in
-  input [31:0] cpu_vbr, // m68k VBR
-  output wire ovr,      // NMI address decoding override
+	input	cpu_r_w,		// m68k read / write
+	output	_cpu_dtack,		// m68k data acknowledge
+	output	_cpu_reset,		// m68k reset
+	input _cpu_reset_in,		// m68k reset in
+	input [31:0] cpu_vbr,		// m68k VBR
+	output wire ovr,		// NMI address decoding override
 	//sram pins
 	output	[15:0] ram_data,	//sram data bus
-	input	[15:0] ramdata_in,		//sram data bus in
+	input	[15:0] ramdata_in,	//sram data bus in
 	output	[22:1] ram_address,	//sram address bus
-	output	_ram_bhe,			//sram upper byte select
-	output	_ram_ble,			//sram lower byte select
+	output	_ram_bhe,		//sram upper byte select
+	output	_ram_ble,		//sram lower byte select
 	output	_ram_bhe2,		//sram upper byte select 2nd word
 	output	_ram_ble2,		//sram lower byte select 2nd word
-	output	_ram_we,			//sram write enable
-	output	_ram_oe,			//sram output enable
-  input [48-1:0] chip48,         // big chipram read
+	output	_ram_we,		//sram write enable
+	output	_ram_oe,		//sram output enable
+	input [48-1:0] chip48,		// big chipram read
 	//system	pins
-  input rst_ext,      // reset from ctrl block
-  output rst_out,     // minimig reset status
-	input	clk,				// 28.37516 MHz clock
-  input clk7_en,      // 7MHz clock enable
-  input clk7n_en, // 7MHz negedge clock enable
+	input rst_ext,			// reset from ctrl block
+	output rst_out,			// minimig reset status
+	input	clk,			// 28.37516 MHz clock
+	input clk7_en,			// 7MHz clock enable
+	input clk7n_en,			// 7MHz negedge clock enable
 	input c1,			// clock enable signal
 	input c3,			// clock enable signal
 	input cck,			// colour clock enable
-	input [9:0] eclk,			// ECLK enable (1/10th of CLK)
+	input [9:0] eclk,		// ECLK enable (1/10th of CLK)
 	//rs232 pins
-	input   midi_rx,
-	output  midi_tx,
-	input	rxd,				//rs232 receive
-	output	txd,				//rs232 send
-	input	cts,				//rs232 clear to send
-	output	rts,				//rs232 request to send
+	input	midi_rx,
+	output	midi_tx,
+	input	rxd,			//rs232 receive
+	output	txd,			//rs232 send
+	input	cts,			//rs232 clear to send
+	output	rts,			//rs232 request to send
 	//I/O
 	input	[15:0]_joy1,		//joystick 1 [fire7:fire,up,down,left,right] (default mouse port)
 	input	[15:0]_joy2,		//joystick 2 [fire7:fire,up,down,left,right] (default joystick port)
 	input	[15:0]_joy3,		//joystick 3 [fire7:fire,up,down,left,right]
 	input	[15:0]_joy4,		//joystick 4 [fire7:fire,up,down,left,right]
 	input	[15:0] joy_ana,
-  input [2:0] mouse0_btn, // mouse buttons
-  input [2:0] mouse1_btn, // mouse buttons
-  input mouse_idx,       // mouse buttons
-  input kbd_reset_n,
-  input kbd_mouse_strobe,
-  input kms_level,
-  input [1:0] kbd_mouse_type,
-  input [7:0] kbd_mouse_data,
-	input	_15khz,				//scandoubler disable
+	input [2:0] mouse0_btn,		// mouse buttons
+	input [2:0] mouse1_btn,		// mouse buttons
+	input mouse_idx,		// mouse buttons
+	input kbd_reset_n,
+	input kbd_mouse_strobe,
+	input kms_level,
+	input [1:0] kbd_mouse_type,
+	input [7:0] kbd_mouse_data,
+	input	_15khz,			//scandoubler disable
 	input [63:0] rtc,
-	output pwr_led,				//power led
-	output disk_led,				//fdd led
-	input		msdat_i,				//PS2 mouse data
-	input		msclk_i,				//PS2 mouse clk
-	input		kbddat_i,				//PS2 keyboard data
-	input		kbdclk_i,				//PS2 keyboard clk
-   output	msdat_o,				//PS2 mouse data
-	output	msclk_o,				//PS2 mouse clk
-	output	kbddat_o,				//PS2 keyboard data
-	output	kbdclk_o,				//PS2 keyboard clk
+	output pwr_led,			//power led
+	output disk_led,		//fdd led
+	input	msdat_i,		//PS2 mouse data
+	input	msclk_i,		//PS2 mouse clk
+	input	kbddat_i,		//PS2 keyboard data
+	input	kbdclk_i,		//PS2 keyboard clk
+	output	msdat_o,		//PS2 mouse data
+	output	msclk_o,		//PS2 mouse clk
+	output	kbddat_o,		//PS2 keyboard data
+	output	kbdclk_o,		//PS2 keyboard clk
 	//host controller interface (SPI)
-	input	[2:0]_scs,			//SPI chip select
-	input	direct_sdi,			//SD Card direct in
-	input	sdi,				//SPI data input
-	inout	sdo,				//SPI data output
-	input	sck,				//SPI clock
-
-	input qcs,            //QSPI cs
-	input qsck,           //QSPI clock
-	input [3:0] qdat,     //QSPI data input
+	input	[2:0]_scs,		//SPI chip select
+	input	direct_sdi,		//SD Card direct in
+	input	sdi,			//SPI data input
+	inout	sdo,			//SPI data output
+	input	sck,			//SPI clock
+	input	qcs,			//QSPI cs
+	input	qsck,			//QSPI clock
+	input	[3:0] qdat,		//QSPI data input
 	//video
-	output	_hsync,				//horizontal sync
+	output	_hsync,			//horizontal sync
 	output	hsyncpol,
-	output	_vsync,				//vertical sync
+	output	_vsync,			//vertical sync
 	output	vsyncpol,
-	output	_csync,				//composite sync (for _15khz mode)
-	output   selcsync,
-	output	[7:0] red,			//red
+	output	_csync,			//composite sync (for _15khz mode)
+	output	selcsync,
+	output	[7:0] red,		//red
 	output	[7:0] green,		//green
-	output	[7:0] blue,			//blue
+	output	[7:0] blue,		//blue
 	//audio
-	output	[23:0]ldata_mix,		//left DAC data
-	output	[23:0]rdata_mix, 		//right DAC data
-	output	[15:0]ldata_paula,		//left DAC data
-	output	[15:0]rdata_paula, 		//right DAC data
+	output	[23:0]ldata_mix,	//left DAC data
+	output	[23:0]rdata_mix, 	//right DAC data
+	output	[15:0]ldata_paula,	//left DAC data (Paula only)
+	output	[15:0]rdata_paula, 	//right DAC data (Paula only)
 
-    input   [15:0]aux_left_1,		// Auxiliary audio channels
-    input   [15:0]aux_right_1,		// Auxiliary audio channels
-    input   [15:0]aux_left_2,		// Auxiliary audio channels
-    input   [15:0]aux_right_2,		// Auxiliary audio channels
-    output        cen_44100,
+	input	[15:0]aux_left_1,	// Auxiliary audio channels
+	input	[15:0]aux_right_1,	// Auxiliary audio channels
+	input	[15:0]aux_left_2,	// Auxiliary audio channels
+	input	[15:0]aux_right_2,	// Auxiliary audio channels
+	output	cen_44100,
 	//user i/o
-  output  [3:0] cpu_config,
-  output  overclock,
-  output  [5:0] board_configured,
-  output  turbochipram,
-  output  turbokick,
-  output  [1:0] slow_config,
-  output  aga,
-  output  rtg,
-  output  init_b,       // vertical sync for MCU (sync OSD update)
-  output wire fifo_full,
-  // fifo / track display
-	output  [7:0]trackdisp,
-	output  [13:0]secdisp,
-  output  floppy_fwr,
-  output  floppy_frd,
-  output  hd_fwr,
-  output  hd_frd,
-  output  hblank_out,
-  output  vblank_out,
-  output  blank_out,
-  output  osd_blank_out,	// Let the toplevel dither module handle drawing the OSD.
-  output  osd_pixel_out,
-  output  rtg_ena,
-  output  rtg_linecompare,
-  output reg ntscmode = 1'b0, //PAL/NTSC video mode selection
-  input   ext_int2,	// External interrupt for Akiko
-  input   ext_int6,	// External interrupt for AHI audio
-  input [1:0] ram_64meg,
-  output  insert_sound,
-  output  eject_sound,
-  output  motor_sound,
-  output  step_sound,
-  output  hdd_sound
+	output	[3:0] cpu_config,
+	output	overclock,
+	output	[5:0] board_configured,
+	output	turbochipram,
+	output	turbokick,
+	output	[1:0] slow_config,
+	output	aga,
+	output	rtg,
+	output	init_b,			// vertical sync for MCU (sync OSD update)
+	output	fifo_full,
+	// fifo / track display
+	output	[7:0]trackdisp,
+	output	[13:0]secdisp,
+	output	floppy_fwr,
+	output	floppy_frd,
+	output	hd_fwr,
+	output	hd_frd,
+	output	hblank_out,
+	output	vblank_out,
+	output	blank_out,
+	output	osd_blank_out,		// Let the toplevel dither module handle drawing the OSD.
+	output	osd_pixel_out,
+	output	rtg_ena,
+	output	rtg_linecompare,
+	output	ntscmode,		//PAL/NTSC video mode selection
+	input	 ext_int2,		// External interrupt for Akiko
+	input	 ext_int6,		// External interrupt for AHI audio
+	input [1:0] ram_64meg,
+	output	insert_sound,
+	output	eject_sound,
+	output	motor_sound,
+	output	step_sound,
+	output	hdd_sound
 );
 
 //local signals for data bus
@@ -323,8 +322,8 @@ wire		[23:1] ram_address_out;	//ram address out
 
 //local signals for control bus
 wire		ram_rd;					//ram read enable
-wire		ram_hwr;				//ram high byte write enable 
-wire		ram_lwr;				//ram low byte write enable 
+wire		ram_hwr;				//ram high byte write enable
+wire		ram_lwr;				//ram low byte write enable
 wire		ram_hwr2;				//ram high byte write enable
 wire		ram_lwr2;				//ram low byte write enable
 wire		cpu_rd; 				//cpu read enable
@@ -361,7 +360,7 @@ wire		sel_toccata; // Toccata sound card select
 wire		sel_control; // Control board select
 wire		sel_autoconfig;
 wire		int2;					//intterrupt 2
-wire		int3;					//intterrupt 3 
+wire		int3;					//intterrupt 3
 wire		int6;					//intterrupt 6
 wire		int6_toc;			//intterrupt 6
 wire		[7:0] osd_ctrl;			//OSD control
@@ -393,7 +392,7 @@ wire		strhor_paula;			//horizontal strobe for Paula
 wire		[7:0]red_i;				//denise red (internal)
 wire		[7:0]green_i;			//denise green (internal)
 wire		[7:0]blue_i;			//denise blue (internal)
-wire		osd_blank;				//osd blanking 
+wire		osd_blank;				//osd blanking
 wire		osd_pixel;				//osd pixel(video) data
 wire		_hsync_i;				//horizontal sync (internal)
 wire		_vsync_i;				//vertical sync (internal)
@@ -405,10 +404,10 @@ wire    varbeamen;
 //local floppy signals (CIA<-->Paula)
 wire		_step;					//step heads of disk
 wire		direc;					//step heads direction
-wire		_sel0;					//disk0 select 	
-wire		_sel1;					//disk1 select 	
-wire		_sel2;					//disk2 select 	
-wire		_sel3;					//disk3 select 	
+wire		_sel0;					//disk0 select
+wire		_sel1;					//disk1 select
+wire		_sel2;					//disk2 select
+wire		_sel3;					//disk3 select
 wire		side;					//upper/lower disk head
 wire		_motor;					//disk motor control
 wire		_track0;				//track zero detect
@@ -521,13 +520,7 @@ assign aga = useaga ? chipset_config[4] : 1'b0;
 assign rtg = usertg;
 
 assign slow_config = memory_config[3:2];
-
-// NTSC/PAL switching is controlled by OSD menu, change requires reset to take effect
-always @(posedge clk)
-  if (clk7_en) begin
-    if (reset)
-      ntscmode <= chipset_config[1] && ntscswitch;
-  end
+assign ntscmode = chipset_config[1];
 
 // vertical sync for the MCU
 reg vsync_del = 1'b0;   // delayed vsync signal for edge detection
@@ -545,7 +538,6 @@ always @(posedge clk)
   end
 
 assign init_b = vsync_t;
-
 
 //--------------------------------------------------------------------------------------
 
@@ -565,7 +557,7 @@ agnus #(.wide_hblank(wide_hblank)) AGNUS1
 	.address_in(cpu_address_out[8:1]),
 	.address_out(dma_address_out),
 	.reg_address_out(reg_address),
-  .cpu_custom(cpu_custom),
+	.cpu_custom(cpu_custom),
 	.dbr(dbr),
 	.dbwe(dbwe),
 	._hsync(_hsync_i),
@@ -579,12 +571,12 @@ agnus #(.wide_hblank(wide_hblank)) AGNUS1
 	.track_vsync(track_vsync),
 	.sol(sol),
 	.sof(sof),
-  .vbl_int(vbl_int),
+	.vbl_int(vbl_int),
 	.strhor_denise(strhor_denise),
 	.strhor_paula(strhor_paula),
 	.htotal(htotal),
-  .harddis(harddis),
-  .varbeamen(varbeamen),
+	.harddis(harddis),
+	.varbeamen(varbeamen),
 	.int3(int3),
 	.audio_dmal(audio_dmal),
 	.audio_dmas(audio_dmas),
@@ -592,10 +584,10 @@ agnus #(.wide_hblank(wide_hblank)) AGNUS1
 	.disk_dmas(disk_dmas),
 	.bls(bls),
 	.ntsc(ntscmode),
-  .a1k(chipset_config[2]),
+	.a1k(chipset_config[2]),
 	.ecs(|chipset_config[4:3]),
-  .aga(aga),
-  .rtg(rtg),
+	.aga(aga),
+	.rtg(rtg),
 	.floppy_speed(floppy_config[0]),
 	.turbo(turbo),
 	.rtg_ena(rtg_ena),
@@ -621,8 +613,8 @@ assign txd = txd_i | ser_midi;
 //instantiate paula
 paula PAULA1
 (
-  .clk(clk),
-  .clk7_en (clk7_en),
+	.clk(clk),
+	.clk7_en (clk7_en),
 	.cck(cck),
 	.reset(reset),
 	.reg_address_in(reg_address),
@@ -630,10 +622,10 @@ paula PAULA1
 	.data_out(paula_data_out),
 	.txd(txd_i),
 	.rxd(rxd_i),
-  .ntsc(ntscmode),
+	.ntsc(ntscmode),
 	.sof(sof),
-  .strhor(strhor_paula),
-  .vblint(vbl_int),
+	.strhor(strhor_paula),
+	.vblint(vbl_int),
 	.int2(int2|gayle_irq|ext_int2),
 	.int3(int3),
 	.int6(int6|ext_int6|int6_toc),
@@ -651,7 +643,7 @@ paula PAULA1
 	._change(_change),
 	._ready(_ready),
 	._wprot(_wprot),
-  .index(index),
+	.index(index),
 	.disk_led(disk_led),
 	._scs(_scs[0]),
 	.sdi(sdi),
@@ -678,16 +670,16 @@ paula PAULA1
 	.hdd_data_wr(hdd_data_wr),
 	.hdd_data_rd(hdd_data_rd),
 	.hdd_cdda_wr(hdd_cdda_wr),
-  // fifo / track display
+	// fifo / track display
 	.trackdisp(trackdisp),
 	.secdisp(secdisp),
-  .floppy_fwr (floppy_fwr),
-  .floppy_frd (floppy_frd),
-  .filter(~|audio_filter_mode ? !_led : audio_filter_mode[1]),
-  .insert_sound(insert_sound_i),
-  .eject_sound(eject_sound_i),
-  .motor_sound(motor_sound_i),
-  .step_sound(step_sound_i)
+	.floppy_fwr (floppy_fwr),
+	.floppy_frd (floppy_frd),
+	.filter(~|audio_filter_mode ? !_led : audio_filter_mode[1]),
+	.insert_sound(insert_sound_i),
+	.eject_sound(eject_sound_i),
+	.motor_sound(motor_sound_i),
+	.step_sound(step_sound_i)
 );
 
 wire drivesound_fdd;
@@ -701,32 +693,32 @@ assign step_sound = drivesound_fdd & step_sound_i;
 wire	[6:0] userio_memory_config;	//memory configuration
 wire	[3:0] userio_floppy_config;	//floppy drives configuration (drive number and speed)
 wire	[4:0] userio_chipset_config;	//chipset features selection
-wire	[2:0] userio_ide_config0;		//HDD & HDC config: bit #0 enables Gayle, bit #1 enables Master drive, bit #2 enables Slave drive
-wire	[2:0] userio_ide_config1;		//HDD & HDC config: bit #0 enables Gayle, bit #1 enables Master drive, bit #2 enables Slave drive
+wire	[2:0] userio_ide_config0;	//HDD & HDC config: bit #0 enables Gayle, bit #1 enables Master drive, bit #2 enables Slave drive
+wire	[2:0] userio_ide_config1;	//HDD & HDC config: bit #0 enables Gayle, bit #1 enables Master drive, bit #2 enables Slave drive
 wire    [3:0] userio_cpu_config;
 wire          userio_overclock;
-reg     [3:0] cpu_config_reg;
+reg	[3:0] cpu_config_reg;
 reg           overclock_reg;
 
 assign cpu_config = cpu_config_reg;
 assign overclock = overclock_reg;
 
 always @(posedge clk) begin
-	memory_config <= userio_memory_config;
-	floppy_config <= userio_floppy_config;
-	chipset_config <= userio_chipset_config;
-	ide_config0 <= userio_ide_config0;
-	ide_config1 <= userio_ide_config1;
-	cpu_config_reg <= userio_cpu_config;
-	overclock_reg <= userio_overclock;
+  memory_config <= userio_memory_config;
+  floppy_config <= userio_floppy_config;
+  chipset_config <= userio_chipset_config;
+  ide_config0 <= userio_ide_config0;
+  ide_config1 <= userio_ide_config1;
+  cpu_config_reg <= userio_cpu_config;
+  overclock_reg <= userio_overclock;
 end
 
 //instantiate user IO
-userio USERIO1 
-(	
+userio USERIO1
+(
 	.clk(clk),
-  .clk7_en(clk7_en),
-  .clk7n_en(clk7n_en),
+	.clk7_en(clk7_en),
+	.clk7n_en(clk7n_en),
 	.reset(reset),
 	.c1(c1),
 	.c3(c3),
@@ -758,7 +750,7 @@ userio USERIO1
 	.kbd_mouse_type(kbd_mouse_type),
 	.kbd_mouse_strobe(kbd_mouse_strobe),
 	.kms_level(kms_level),
-	.kbd_mouse_data(kbd_mouse_data), 
+	.kbd_mouse_data(kbd_mouse_data),
 	.osd_ctrl(osd_ctrl),
 	.keyboard_disabled(keyboard_disabled),
 	._scs(_scs[1]),
@@ -773,7 +765,7 @@ userio USERIO1
 	.chipset_config(userio_chipset_config),
 	.floppy_config(userio_floppy_config),
 	.scanline(scanline),
-  .dither(dither),
+	.dither(dither),
 	.ide_config0(userio_ide_config0),
 	.ide_config1(userio_ide_config1),
 	.cpu_config(userio_cpu_config),
@@ -781,16 +773,16 @@ userio USERIO1
 	.audio_filter_mode(audio_filter_mode),
 	.pwr_led_dim_n(pwr_led_dim_n),
 	.usrrst(usrrst),
-  .cpurst(cpurst),
-  .cpuhlt(cpuhlt),
-  .fifo_full(fifo_full),
-  .host_cs      (host_cs          ),
-  .host_adr     (host_adr         ),
-  .host_we      (host_we          ),
-  .host_bs      (host_bs          ),
-  .host_wdat    (host_wdat        ),
-  .host_rdat    (host_rdat        ),
-  .host_ack     (host_ack         )
+	.cpurst(cpurst),
+	.cpuhlt(cpuhlt),
+	.fifo_full(fifo_full),
+	.host_cs(host_cs),
+	.host_adr(host_adr),
+	.host_we(host_we),
+	.host_bs(host_bs),
+	.host_wdat(host_wdat),
+	.host_rdat(host_rdat),
+	.host_ack(host_ack)
 );
 
 //assign cpu_speed = (chipset_config[0] & ~int7 & ~freeze & ~ovr);
@@ -799,21 +791,21 @@ assign cpu_speed = 1'b0;
 /*
 // debug module
 debug DEBUG1 (
-  .clk        (clk),
-  .clk7_en    (clk7_en),
-  .adr        (reg_address),
-  .dat        (custom_data_in)
+	.clk        (clk),
+	.clk7_en    (clk7_en),
+	.adr        (reg_address),
+	.dat        (custom_data_in)
 );
 */
 
 //instantiate Denise
 denise DENISE1
-(		
-  .clk(clk),
-  .clk7_en(clk7_en),
-  .c1(c1),
-  .c3(c3),
-  .cck(cck),
+(
+	.clk(clk),
+	.clk7_en(clk7_en),
+	.c1(c1),
+	.c3(c3),
+	.cck(cck),
 	.reset(reset),
 	.strhor(strhor_denise),
 	.reg_address_in(reg_address),
@@ -833,14 +825,14 @@ denise DENISE1
 
 //instantiate Amber
 amber AMBER1
-(		
+(
 	.clk(clk),
 	.dblscan(_15khz && !varbeamen),
 	.varbeamen(varbeamen),
-	.lr_filter(lr_filter),
-	.hr_filter(hr_filter),
-	.scanline(scanline),
-	.dither(dither),
+	.lr_filter(usevideofilter ? lr_filter : 2'b00),
+	.hr_filter(usevideofilter ? hr_filter : 2'b00),
+	.scanline(usevideofilter ? scanline : 2'b00),
+	.dither(usevideofilter ? dither : 2'b00),
 	.htotal(htotal),
 	.hires(hires),
 `ifdef MINIMIG_USE_HDMI
@@ -890,7 +882,7 @@ amiga_keyboard kbd
 	.kbd_mouse_type( kbd_mouse_type ),
 	.kbd_mouse_strobe( kbd_mouse_strobe ),
 	.kms_level ( kms_level ),
-	.kbd_mouse_data( kbd_mouse_data ), 
+	.kbd_mouse_data( kbd_mouse_data ),
 	.keyboard_disabled( keyboard_disabled ),
 	.osd_ctrl  ( osd_ctrl ),
 	._lmb      ( kb_lmb ),
@@ -906,7 +898,7 @@ amiga_keyboard kbd
 	.key_strobe( key_strobe ),
 	.key_data  ( key_data ),
 	.keyack    ( keyack ),
-	
+
 	.joy_emu   ( ),
 	.kbclk     (),
 	.kbdata    ()
@@ -937,10 +929,10 @@ ciaa CIAA1
 );
 
 //instantiate cia B
-ciab CIAB1 
+ciab CIAB1
 (
 	.clk(clk),
-  .clk7_en(clk7_en),
+	.clk7_en(clk7_en),
 	.aen(sel_cia_b),
 	.rd(cpu_rd),
 	.wr(cpu_hwr|cpu_lwr),
@@ -958,12 +950,12 @@ ciab CIAB1
 );
 
 //instantiate cpu bridge
-minimig_m68k_bridge CPU1 
+minimig_m68k_bridge CPU1
 (
 	.clk(clk),
-  .clk7_en(clk7_en),
-  .clk7n_en(clk7n_en),
-  .blk(scanline[1]),
+	.clk7_en(clk7_en),
+	.clk7n_en(clk7n_en),
+	.blk(usevideofilter ? scanline[1] : 1'b0),
 	.c1(c1),
 	.c3(c3),
 	.cck(cck),
@@ -972,10 +964,10 @@ minimig_m68k_bridge CPU1
 	.dbr(dbr),
 	.dbs(dbs),
 	.xbs(xbs),
-  .nrdy(gayle_nrdy),
+	.nrdy(gayle_nrdy),
 	.bls(bls),
 	.cpu_speed(cpu_speed & ~int7 & ~ovr & ~usrrst),
-  .memory_config(memory_config[3:0]),
+	.memory_config(memory_config[3:0]),
 	.turbo(turbo),
 	.fast_rd(fast_rd),
 	._as(_cpu_as),
@@ -998,15 +990,15 @@ minimig_m68k_bridge CPU1
 	.data_out(cpu_data_out),
 	.data_in(cpu_data_in),
 	.data_in2(cpu_data_in2),
-  ._cpu_reset (_cpu_reset),
-  .cpu_halt (cpuhlt),
-  .host_cs (host_cs),
-  .host_adr (host_adr[23:1]),
-  .host_we (host_we),
-  .host_bs (host_bs),
-  .host_wdat (host_wdat),
-  .host_rdat (host_rdat),
-  .host_ack (host_ack)
+	._cpu_reset (_cpu_reset),
+	.cpu_halt (cpuhlt),
+	.host_cs (host_cs),
+	.host_adr (host_adr[23:1]),
+	.host_we (host_we),
+	.host_bs (host_bs),
+	.host_wdat (host_wdat),
+	.host_rdat (host_rdat),
+	.host_ack (host_ack)
 );
 
 wire sel_drivesounds;
@@ -1017,7 +1009,7 @@ minimig_bankmapper BMAP1
 	.chip0((~ovr|~cpu_rd|dbr) & sel_chip[0]),
 	.chip1(sel_chip[1]),
 	.chip2(sel_chip[2]),
-	.chip3(sel_chip[3]),	
+	.chip3(sel_chip[3]),
 	.slow0(sel_slow[0]),
 	.slow1(sel_slow[1]),
 	.slow2(sel_slow[2]),
@@ -1033,11 +1025,11 @@ minimig_bankmapper BMAP1
 );
 
 //instantiate sram bridge
-minimig_sram_bridge RAM1 
+minimig_sram_bridge RAM1
 (
 	.clk(clk),
 	.c1(c1),
-	.c3(c3),	
+	.c3(c3),
 	.bank(bank),
 	.address_in(ram_address_out),
 	.data_in(ram_data_in),
@@ -1054,35 +1046,35 @@ minimig_sram_bridge RAM1
 	._we(_ram_we),
 	._oe(_ram_oe),
 	.address(ram_address),
-	.data(ram_data),	
-	.ramdata_in(ramdata_in)	
+	.data(ram_data),
+	.ramdata_in(ramdata_in)
 );
 
 `ifdef MINIMIG_HRTMON_CART
 cart CART1
 (
-  .clk            (clk            ),
-  .clk7_en        (clk7_en        ),
-  .clk7n_en       (clk7n_en       ),
-  .cpu_rst        (!_cpu_reset    ),
-  .cpu_address    (cpu_address    ),
-  .cpu_address_in (cpu_address_out),
-  ._cpu_as        (_cpu_as        ),
-  .cpu_rd         (cpu_rd         ),
-  .cpu_hwr        (cpu_hwr        ),
-  .cpu_lwr        (cpu_lwr        ),
-  .cpu_vbr        (cpu_vbr        ),
-  .reg_address_in (reg_address    ),
-  .reg_data_in    (custom_data_in ),
-  .dbr            (dbr            ),
-  .ovl            (ovl            ),
-  .freeze         (freeze         ),
-  .cart_data_out  (cart_data_out  ),
-  .int7           (int7           ),
-  .sel_cart       (sel_cart       ),
-  .ovr            (ovr            ),
-//  .aron           (aron           ),
-  .cpuhlt         (cpuhlt         )
+	.clk(clk),
+	.clk7_en(clk7_en),
+	.clk7n_en(clk7n_en),
+	.cpu_rst(!_cpu_reset),
+	.cpu_address(cpu_address),
+	.cpu_address_in(cpu_address_out),
+	._cpu_as(_cpu_as),
+	.cpu_rd(cpu_rd),
+	.cpu_hwr(cpu_hwr),
+	.cpu_lwr(cpu_lwr),
+	.cpu_vbr(cpu_vbr),
+	.reg_address_in(reg_address),
+	.reg_data_in(custom_data_in),
+	.dbr(dbr),
+	.ovl(ovl),
+	.freeze(freeze),
+	.cart_data_out(cart_data_out),
+	.int7(int7),
+	.sel_cart(sel_cart),
+	.ovr(ovr),
+	//.aron(aron),
+	.cpuhlt(cpuhlt)
 );
 `else
 	assign sel_cart = 1'b0;
@@ -1101,7 +1093,7 @@ wire [7:0] control_base_addr; // IO base address for control card
 wire [5:0] board_configured_i;// IO board configured
 
 //instantiate gary
-gary GARY1 
+gary GARY1
 (
 	.cpu_address_in(cpu_address_out),
 	.dma_address_in(dma_address_out),
@@ -1124,7 +1116,7 @@ gary GARY1
 	.dbs(dbs),
 	.xbs(xbs),
 	.memory_config(memory_config[3:0]),
-	.hdc_ena({ide_config1[0], ide_config0[0]}), // Gayle decoding enable	
+	.hdc_ena({ide_config1[0], ide_config0[0]}), // Gayle decoding enable
 	.ram_rd(ram_rd),
 	.ram_hwr(ram_hwr),
 	.ram_lwr(ram_lwr),
@@ -1207,18 +1199,18 @@ wire [15:0] cdda_l;
 wire [15:0] cdda_r;
 
 `ifdef MINIMIG_CDDA
-cdda_fifo cdda_fifo (
-	.clk_sys       ( clk          ),
-	.clk_en        ( 1'b1         ),
-	.cen_44100     ( cen_44100    ),
-	.reset         ( reset        ),
+cdda_fifocdda_fifo(
+	.clk_sys(clk),
+	.clk_en(1'b1),
+	.cen_44100(cen_44100),
+	.reset(reset),
 
-	.hdd_cdda_req  ( hdd_cdda_req ),
-	.hdd_cdda_wr   ( hdd_cdda_wr  ),
-	.hdd_data_out  ( hdd_data_out ),
+	.hdd_cdda_req(hdd_cdda_req),
+	.hdd_cdda_wr(hdd_cdda_wr),
+	.hdd_data_out(hdd_data_out),
 
-	.cdda_l        ( cdda_l       ),
-	.cdda_r        ( cdda_r       )
+	.cdda_l(cdda_l),
+	.cdda_r(cdda_r)
 );
 `else
 assign cdda_l = 16'b0;
@@ -1227,8 +1219,8 @@ assign hdd_cdda_req = 1'b0;
 `endif
 
 //instantiate system control
-minimig_syscontrol CONTROL1 
-(	
+minimig_syscontrol CONTROL1
+(
 	.clk(clk),
 	.clk7_en (clk7_en),
 	.cnt(sof),
@@ -1255,7 +1247,7 @@ wire allow32bit;
 assign allow32bit= &cpu_config[1:0];
 `else
 assign allow32bit = 1'b0;
-`endif 
+`endif
 
 minimig_autoconfig#(.TOCCATA_SND(MMTOC),.CONTROL_BOARD(MMCB)) autoconfig
 (
@@ -1286,30 +1278,28 @@ assign board_configured = board_configured_i;
 assign rtc_data_out = (sel_rtc && cpu_rd) ? {12'h000, rtc[{cpu_address_out[5:2], 2'b00} +:4]} : 16'h0000;
 
 `ifdef MINIMIG_TOCCATA
-
 toccata #(
-  .CLK_FREQUENCY(28_359_380)
+	.CLK_FREQUENCY(28_359_380)
 ) mytoccata (
-  .clk(clk),
-  .rst(reset),
-  .hsync(_hsync),
-  .data_in(cpu_data_out),
-  .data_out(toc_data_out),
-  .addr(cpu_address_out[15:1]),
-  .rd(cpu_rd),
-  .hwr(cpu_hwr),
-  .lwr(cpu_lwr),
-  .sel(sel_toccata),
-  .toc_int(int6_toc),
-  .out_left(ldata_toc),
-  .out_right(rdata_toc)
+	.clk(clk),
+	.rst(reset),
+	.hsync(_hsync),
+	.data_in(cpu_data_out),
+	.data_out(toc_data_out),
+	.addr(cpu_address_out[15:1]),
+	.rd(cpu_rd),
+	.hwr(cpu_hwr),
+	.lwr(cpu_lwr),
+	.sel(sel_toccata),
+	.toc_int(int6_toc),
+	.out_left(ldata_toc),
+	.out_right(rdata_toc)
 );
-
 `else
 	assign int6_toc = 1'b0;
 	assign toc_data_out = 16'h0000;
-	assign ldata_toc=0;
-	assign rdata_toc=0;
+	assign ldata_toc = 0;
+	assign rdata_toc = 0;
 `endif
 
 wire [7:0] paula_vol;
@@ -1323,30 +1313,28 @@ wire swap_channels;
 `ifdef MINIMIG_CONTROL_BOARD
 
 minimig_control_board myctrlboard (
-  .clk(clk),
-  .rst(reset),
-  .data_in(cpu_data_out),
-  .data_out(ctrl_data_out),
-  .addr(cpu_address_out[15:1]),
-  .rd(cpu_rd),
-  .hwr(cpu_hwr),
-  .lwr(cpu_lwr),
-  .sel(sel_control),
-  .audio_overflow(aud_overflow),
-  .swap_channels(swap_channels),
-  .vol1(paula_vol),
-  .vol2(toccata_vol),
-  .vol3(cdda_vol),
-  .vol4(aux1_vol),
-  .vol5(aux2_vol),
-  .sermidi(ser_midi),
-  .drivesound_fdd(drivesound_fdd),
-  .drivesound_hdd(drivesound_hdd),
-  .track_vsync(track_vsync)
+	.clk(clk),
+	.rst(reset),
+	.data_in(cpu_data_out),
+	.data_out(ctrl_data_out),
+	.addr(cpu_address_out[15:1]),
+	.rd(cpu_rd),
+	.hwr(cpu_hwr),
+	.lwr(cpu_lwr),
+	.sel(sel_control),
+	.audio_overflow(aud_overflow),
+	.swap_channels(swap_channels),
+	.vol1(paula_vol),
+	.vol2(toccata_vol),
+	.vol3(cdda_vol),
+	.vol4(aux1_vol),
+	.vol5(aux2_vol),
+	.sermidi(ser_midi),
+	.drivesound_fdd(drivesound_fdd),
+	.drivesound_hdd(drivesound_hdd),
+	.track_vsync(track_vsync)
 );
-
 `else
-
 assign paula_vol=8'd128;
 assign toccata_vol=8'd128;
 assign cdda_vol=8'd128;
@@ -1357,52 +1345,48 @@ assign drivesound_fdd=1'b0;
 assign drivesound_hdd=1'b0;
 assign swap_channels=1'b0;
 assign track_vsync=1'b0;
-
 `endif
 
 // Mix the Paula, CDDA, Toccata and auxiliary audio data
-
 AudioMix tocAudioMix
 (
-  .clk(clk),
-  .reset_n(!reset),
-  .swap_channels(swap_channels),
-  .audio_in_l1(ldata_paula),
-  .audio_in_r1(rdata_paula),
-  .audio_vol1(paula_vol),
-  .audio_in_l2(ldata_toc),
-  .audio_in_r2(rdata_toc),
-  .audio_vol2(toccata_vol),
-  .audio_in_l3(cdda_l),
-  .audio_in_r3(cdda_r),
-  .audio_vol3(cdda_vol),
-  .audio_in_l4(aux_left_1),
-  .audio_in_r4(aux_right_1),
-  .audio_vol4(aux1_vol),
-  .audio_in_l5(aux_left_2),
-  .audio_in_r5(aux_right_2),
-  .audio_vol5(aux2_vol),
-  .audio_l(ldata_mix),
-  .audio_r(rdata_mix),
-  .audio_overflow(aud_overflow)
+	.clk(clk),
+	.reset_n(!reset),
+	.swap_channels(swap_channels),
+	.audio_in_l1(ldata_paula),
+	.audio_in_r1(rdata_paula),
+	.audio_vol1(paula_vol),
+	.audio_in_l2(ldata_toc),
+	.audio_in_r2(rdata_toc),
+	.audio_vol2(toccata_vol),
+	.audio_in_l3(cdda_l),
+	.audio_in_r3(cdda_r),
+	.audio_vol3(cdda_vol),
+	.audio_in_l4(aux_left_1),
+	.audio_in_r4(aux_right_1),
+	.audio_vol4(aux1_vol),
+	.audio_in_l5(aux_left_2),
+	.audio_in_r5(aux_right_2),
+	.audio_vol5(aux2_vol),
+	.audio_l(ldata_mix),
+	.audio_r(rdata_mix),
+	.audio_overflow(aud_overflow)
 );
-
 
 //data multiplexer
 assign cpu_data_in[15:0] = gary_data_out[15:0]
-						 | cia_data_out[15:0]
-						 | gayle_data_out[15:0]
-             | cart_data_out[15:0]
-             | rtc_data_out
-				 | toc_data_out[15:0]
-				 | ctrl_data_out
-				 | autoconfig_data_out;
+				| cia_data_out[15:0]
+				| gayle_data_out[15:0]
+				| cart_data_out[15:0]
+				| rtc_data_out
+				| toc_data_out[15:0]
+				| ctrl_data_out
+				| autoconfig_data_out;
 
 assign custom_data_out[15:0] = agnus_data_out[15:0]
-							 | paula_data_out[15:0]
-							 | denise_data_out[15:0]
-							 | user_data_out[15:0];
-
+				| paula_data_out[15:0]
+				| denise_data_out[15:0]
+				| user_data_out[15:0];
 
 //--------------------------------------------------------------------------------------
 
@@ -1437,6 +1421,4 @@ assign rst_out = reset;
 	//.update()
 //);
 
-
 endmodule
-
