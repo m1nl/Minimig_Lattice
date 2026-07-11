@@ -34,6 +34,7 @@ module cpu_cache_new # (parameter addr_max_bits=26, parameter addr_prefix_bits=1
   input  wire [ 16-1:0] sdr_dat_r,      // sdram read data
   output reg            sdr_read_req,   // sdram read request from cache
   input  wire           sdr_read_ack,   // sdram read acknowledge to cache
+  input  wire           sdr_read_pre,   // sdram one cycle before it can accept a new request
   output reg  [ 26-1:1] sdr_adr,        // sdram address
   output reg  [ 32-1:0] sdr_dat_w,      // sdram write data
   output reg  [  4-1:0] sdr_dqm_w,      // sdram write byte selects (active low)
@@ -216,10 +217,9 @@ localparam [3:0]
   CPU_SM_WB    = 4'd5,
   CPU_SM_READ  = 4'd6,
   CPU_SM_WAIT  = 4'd7,
-  CPU_SM_SDWAI = 4'd8,
-  CPU_SM_FILL1 = 4'd9,
-  CPU_SM_FILL2 = 4'd10,
-  CPU_SM_FILLW = 4'd11;
+  CPU_SM_FILL1 = 4'd8,
+  CPU_SM_FILL2 = 4'd9,
+  CPU_SM_FILLW = 4'd10;
 
 // sdram-side state machine
 localparam [1:0]
@@ -458,6 +458,7 @@ always @ (posedge clk) begin
         cpu_sm_state <= #1 CPU_SM_IDLE;
       end
       CPU_SM_READ : begin
+        cpu_sm_adr <= #1 {cpu_adr_idx, cpu_adr_blk};
         cpu_adr_blk_ptr <= #1 cpu_adr_blk;
         if(cpu_cs)
            cpu_sm_state<= CPU_SM_WAIT;
@@ -509,27 +510,22 @@ always @ (posedge clk) begin
         end else begin
           // on miss fetch data from SDRAM
           cpu_acked <= #1 1'b0;
-          if (!sdr_read_ack) begin
+          // stay in SM_READ until SDRAM is one cycle before it can
+          // accept request; this may increase cache hit rate
+          // when address decoding fails (when overclock is active)
+          if (!sdr_read_ack && sdr_read_pre) begin
             sdr_read_req <= #1 1'b1;
             cpu_sm_state <= #1 CPU_SM_FILL1;
           end else begin
-            // wait if the previous request is still going
-            // (when the cache is inhibited, we don't wait until the burst is finished)
-            cpu_sm_state <= #1 CPU_SM_SDWAI;
+            cpu_sm_state <= CPU_SM_READ;
           end
         end
-
       end
 
       CPU_SM_WAIT : begin
         cpu_adr_blk_ptr <= #1 cpu_adr_blk;
         cpu_sm_adr <= #1 {cpu_adr_idx, cpu_adr_blk};
         if (!cpu_cs) cpu_sm_state <= #1 CPU_SM_IDLE;
-      end
-      CPU_SM_SDWAI :
-      if (!sdr_read_ack) begin
-        sdr_read_req <= #1 1'b1;
-        cpu_sm_state <= #1 CPU_SM_FILL1;
       end
       CPU_SM_FILL1 : begin
         cpu_sm_adr <= #1 {cpu_adr_idx, cpu_adr_blk_ptr};
@@ -628,7 +624,7 @@ always @ (posedge clk) begin
         cpu_sm_state <= #1 CPU_SM_IDLE;
         cpu_adr_blk_ptr <= #1 cpu_adr_blk;
       end
-      default: ;
+      default: cpu_sm_state <= #1 CPU_SM_INIT;
     endcase
 
     if (cacheline_clr) last_pair_valid_i <= #1 1'b0;
@@ -715,7 +711,7 @@ always @ (posedge clk) begin
         sdr_sm_dram1_we <= #1 sdr_dtag1_match && sdr_dtag1_valid;
         sdr_sm_state <= #1 SDR_SM_IDLE;
       end
-      default: ;
+      default: sdr_sm_state <= SDR_SM_INIT0;
     endcase
   end
 end

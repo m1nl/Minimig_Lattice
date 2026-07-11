@@ -276,6 +276,8 @@ reg [31:0] cache_snoop_dat_w;
 reg [3:0] cache_snoop_bs;
 reg snoop_act;
 
+wire cache_req_pre = (sdram_state == ph15 || sdram_state == ph7);
+
 //// cpu cache ////
 cpu_cache_new #(
 	.addr_prefix_bits(addr_prefix_bits),
@@ -301,6 +303,7 @@ cpu_cache_new #(
 	.sdr_dat_r        (sdata_reg),                    // sdram read data
 	.sdr_read_req     (cache_req),                    // sdram read request from cache
 	.sdr_read_ack     (readcache_fill),               // sdram read acknowledge to cache
+	.sdr_read_pre     (cache_req_pre),                // sdram one cycle before it can accept a new request
 	.sdr_adr          (writebufferAddr),
 	.sdr_dat_w        ({writebufferWR2, writebufferWR}),
 	.sdr_dqm_w        ({writebuffer_dqm2, writebuffer_dqm}),
@@ -411,7 +414,7 @@ always @ (posedge sysclk) begin
 				if(!init_done)	// Use a shorter cycle during init (removes a comparison with init_done from critical paths)
 					sdram_state <= #1 ph10;
 				else if(shortcut || (clk7_enD & ~clk7_en))
-					sdram_state <= #1 ph1;		
+					sdram_state <= #1 ph1;
 			end
 		ph1     : sdram_state <= #1 ph2;
 		ph2     : begin
@@ -449,7 +452,7 @@ always @(posedge sysclk) begin
 	end
 
 	// Has the host been waiting an unreasonably long time?
-	hostatn <= !(|hostslot_cnt) && hostce && (slot2_type==IDLE || slot2_bank != 2'b00);	
+	hostatn <= !(|hostslot_cnt) && hostce && (slot2_type==IDLE || slot2_bank != 2'b00);
 end
 
 reg cpu_reservertg;
@@ -523,7 +526,7 @@ always @ (posedge sysclk) begin
 	cache_fill_1                <= #1 1'b0;
 	cache_fill_2                <= #1 1'b0;
 	snoop_act                   <= #1 1'b0;
-	
+
 	// Time slot control
 	case(sdram_state)
 		ph0 : begin
@@ -534,7 +537,7 @@ always @ (posedge sysclk) begin
 				sd_cmd              <= #1 CMD_WRITE;
 				dqm                 <= #1 slot2_dqm;
 			end
-			
+
 			slot1_type            <= #1 IDLE;
 			// Do as much priority encoding as possible in advance.
 			// Now continue an in-progress RTG transaction if appropriate
@@ -564,7 +567,7 @@ always @ (posedge sysclk) begin
 				slot1_addr          <= #1 {writebufferAddr[25:1], 1'b0};
 			end
 			// request from read cache
-			else if(cache_req && cpu_slot1ok) begin 
+			else if(cache_req && cpu_slot1ok) begin
 				// we only yield to the OSD CPU if it's both cycle-starved and ready to go
 				slot1_type          <= #1 CPU_READCACHE;
 				sdaddr_next         <= #1 cpuAddr_r[22:10];
@@ -592,7 +595,7 @@ always @ (posedge sysclk) begin
 				sd_cmd_next         <= #1 CMD_ACTIVE;
 				slot1_addr          <= #1 {hostAddr[25:2],2'b00};
 			end
-			
+
 		end
 
 		ph1 : begin
@@ -616,18 +619,18 @@ always @ (posedge sysclk) begin
 			end
 			else begin
 				ba <= slot1_bank;
-			
+
 				if (slot1_type==CPU_WRITECACHE) begin
 					slot1_write         <= #1 1'b1;
 					writebuffer_ack     <= #1 writebuffer_req; // let the write buffer know we're about to write
 				end
-				
+
 				if (slot1_type==HOST) begin
 					slot1_write         <= #1 hostwe;
 					cache_snoop_dat_w <={hostWR}; // snoop write data
 					cache_snoop_bs <= {hostbytesel[2],hostbytesel[3],hostbytesel[0],hostbytesel[1]}; // Byte selects
 				end
-				
+
 				if (slot1_type==REFRESH)
 					refresh_pending     <= #1 1'b0;
 			end
@@ -675,7 +678,7 @@ always @ (posedge sysclk) begin
 					sdaddr_next[10] <= ~rtg_extendable;
 				end
 			end
-			
+
 			if(fast_write && slot1_write && (slot2_write || slot2_type == IDLE)) begin // Write cycle
 				sdaddr_next[12:3]        <= #1 {1'b0, 1'b0, 1'b0, slot1_addr[25], slot1_addr[9:4]}; // no auto-precharge
 				sdaddr_next[2:0]         <= #1 slot1_addr[3:1];
@@ -755,7 +758,7 @@ always @ (posedge sysclk) begin
 				sdata_oe            <= #1 1'b1;
 			end
 			cache_fill_1          <= #1 1'b1;
-			
+
 			// Do as much priority encoding as possible in advance.
 			slot2_type            <= #1 IDLE;
 			if(rtg_extend) begin
@@ -792,20 +795,20 @@ always @ (posedge sysclk) begin
 				slot2_addr        <= #1 rtgAddr[25:0];
 				sd_cmd_next       <= #1 CMD_ACTIVE;
 			end
-			
+
 		end
 
 		ph9 : begin
 			cache_fill_1          <= #1 1'b1;
 			slot2_write           <= #1 1'b0;
-			
+
 			// Access slot 2, RAS
 
 			if(slot2_type==CPU_WRITECACHE) begin
 				slot2_write       <= #1 1'b1;
-				writebuffer_ack   <= #1 writebuffer_req; // let the write buffer know we're about to write			
+				writebuffer_ack   <= #1 writebuffer_req; // let the write buffer know we're about to write
 			end
-			
+
 			ba                    <= #1 slot2_bank;
 
 			if(slot1_write) begin // Write cycle (2nd word)
