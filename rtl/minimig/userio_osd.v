@@ -94,8 +94,6 @@ always @(posedge clk)
       cpu_config[1:0] <= t_cpu_config[1:0];
       memory_config[5:0] <= t_memory_config[5:0];
     end
-// Temporarily update memory configuration immediately.
-//	 memory_config[5:0] <= t_memory_config[5:0];
   end
 
 
@@ -106,8 +104,6 @@ always @(posedge clk) begin
     overclock <= t_overclock;
   end
 end
-
-
 
 //--------------------------------------------------------------------------------------
 //OSD video generator
@@ -428,7 +424,7 @@ always @ (posedge clk) begin
       if (spi_chip_cfg_sel)     begin if (dat_cnt == 0) t_chipset_config <= #1 wrdat[4:0]; end
       if (spi_cpu_cfg_sel)      begin if (dat_cnt == 0) {t_overclock, t_cpu_config} <= #1 wrdat[4:0]; end
       if (spi_memory_cfg_sel)   begin if (dat_cnt == 0) t_memory_config <= #1 wrdat[6:0]; end
-  //    if (spi_video_cfg_sel)    begin if (dat_cnt == 0) {dither, hr_filter, lr_filter, scanline} <= #1 wrdat[7:0]; end
+      if (spi_video_cfg_sel)    begin if (dat_cnt == 0) {dither, hr_filter, lr_filter, scanline} <= #1 wrdat[7:0]; end
       if (spi_floppy_cfg_sel)   begin if (dat_cnt == 0) floppy_config <= #1 wrdat[3:0]; end
       if (spi_harddisk0_cfg_sel)begin if (dat_cnt == 0) t_ide_config0 <= #1 wrdat[2:0]; end
       if (spi_harddisk1_cfg_sel)begin if (dat_cnt == 0) t_ide_config1 <= #1 wrdat[2:0]; end
