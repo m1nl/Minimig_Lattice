@@ -423,10 +423,10 @@
         <Source name="../../rtl/usb_hid_host/rtl/usb_hid_host_dual_rom.v" type="Verilog" type_short="Verilog">
             <Options/>
         </Source>
-        <Source name="../../rtl/lattice/TG68KdotC_Kernel.vhd" type="VHDL" type_short="VHDL">
+        <Source name="../../rtl/lattice/TG68KdotC_Kernel.vhd" type="VHDL" type_short="VHDL" excluded="TRUE">
             <Options/>
         </Source>
-        <Source name="../../rtl/tg68k/TG68KdotC_Kernel.vhd" type="VHDL" type_short="VHDL" excluded="TRUE">
+        <Source name="../../rtl/tg68k/TG68KdotC_Kernel.vhd" type="VHDL" type_short="VHDL">
             <Options/>
         </Source>
         <Source name="../../rtl/lattice/sprite_ram.v" type="Verilog" type_short="Verilog">
