@@ -107,7 +107,6 @@ reg           cc_clr;
 // cpu address
 reg  [addr_max_bits+addr_prefix_bits-1:0] cpu_adr_l;
 reg  [ 3-1:0] cpu_adr_blk_ptr;
-wire [ 3-1:0] cpu_adr_blk_ptr_next = {cpu_adr_blk_ptr[2:1] + 1'd1, 1'b0};
 wire [ 3-1:0] cpu_adr_blk;
 wire [ 3-1:0] cpu_adr_blk_l;
 wire [ 8-1:0] cpu_adr_idx;
@@ -397,8 +396,6 @@ always @ (posedge clk) begin
             cpu_cache_ack <= #1 1'b1;
             cpu_sm_state <= #1 CPU_SM_WAIT;
           end else begin
-            cpu_sm_adr <= #1 {cpu_adr_idx, cpu_adr_blk_ptr_next};
-            cpu_adr_blk_ptr <= #1 cpu_adr_blk_ptr_next;
             cpu_sm_state <= #1 CPU_SM_READ;
           end
         end else begin
@@ -461,7 +458,6 @@ always @ (posedge clk) begin
         cpu_sm_state <= #1 CPU_SM_IDLE;
       end
       CPU_SM_READ : begin
-
         cpu_adr_blk_ptr <= #1 cpu_adr_blk;
         if(cpu_cs)
            cpu_sm_state<= CPU_SM_WAIT;
@@ -504,7 +500,7 @@ always @ (posedge clk) begin
           // data is already in data cache way 1
           cpu_sm_dtag_we <= #1 1'b1;
           cpu_sm_tag_dat_w <= #1 {1'b1, dtram_cpu_dat_r[30:0]};
-           cpu_dat_r<=cpu_adr_l[1] ? ddram1_cpu_dat_r[31:16] : ddram1_cpu_dat_r[15:0];
+          cpu_dat_r<=cpu_adr_l[1] ? ddram1_cpu_dat_r[31:16] : ddram1_cpu_dat_r[15:0];
           last_pair_d <= #1 ddram1_cpu_dat_r;
           last_pair_adr_d <= #1 cpu_adr_l[25:2];
           last_pair_valid_d <= #1 1'b1;
@@ -548,15 +544,13 @@ always @ (posedge clk) begin
           // companion capture when it is the even word (odd half then arrives
           // as the first FILL2 beat). odd critical words defer to the READ path.
           if (level1_i) begin
-            if (cpu_adr_l[1]) last_pair_i[31:16] <= sdr_dat_r;
-            else              last_pair_i[15:0]  <= sdr_dat_r;
+            last_pair_i[15:0] <= sdr_dat_r;
             last_pair_adr_i   <= cpu_adr_l[25:2];
             last_pair_valid_i <= 1'b0;
             fill_comp_i       <= ~cpu_adr_l[1];
           end
           if (level1_d) begin
-            if (cpu_adr_l[1]) last_pair_d[31:16] <= sdr_dat_r;
-            else              last_pair_d[15:0]  <= sdr_dat_r;
+            last_pair_d[15:0] <= sdr_dat_r;
             last_pair_adr_d   <= cpu_adr_l[25:2];
             last_pair_valid_d <= 1'b0;
             fill_comp_d       <= ~cpu_adr_l[1];
@@ -636,12 +630,6 @@ always @ (posedge clk) begin
       end
       default: ;
     endcase
-
-    // keep the last-pair register coherent: a snoop (chip write) may change the
-    // underlying data, and a cache clear must drop everything. these run after
-    // the case so they win over a same-cycle capture in CPU_SM_READ.
-    if (snoop_act && snoop_adr[25:2] == last_pair_adr_i) last_pair_valid_i <= #1 1'b0;
-    if (snoop_act && snoop_adr[25:2] == last_pair_adr_d) last_pair_valid_d <= #1 1'b0;
 
     if (cacheline_clr) last_pair_valid_i <= #1 1'b0;
     if (cacheline_clr) last_pair_valid_d <= #1 1'b0;
