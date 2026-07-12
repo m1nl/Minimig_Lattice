@@ -5,7 +5,7 @@
 
 
 `timescale 1 ns / 1 ps
-module colortable_ram (WrAddress, RdAddress, Data, ByteEn, WE, RdClock, 
+module colortable_ram (WrAddress, RdAddress, Data, ByteEn, WE, RdClock,
     RdClockEn, Reset, WrClock, WrClockEn, Q)/* synthesis NGD_DRC_MASK=1 */;
     input wire [7:0] WrAddress;
     input wire [7:0] RdAddress;
@@ -94,36 +94,36 @@ module colortable_ram (WrAddress, RdAddress, Data, ByteEn, WE, RdClock,
     defparam colortable_ram_0_0_0.INITVAL_00 = "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000" ;
     defparam colortable_ram_0_0_0.CSDECODE_R = "0b000" ;
     defparam colortable_ram_0_0_0.CSDECODE_W = "0b001" ;
-    defparam colortable_ram_0_0_0.GSR = "ENABLED" ;
+    defparam colortable_ram_0_0_0.GSR = "DISABLED" ;
     defparam colortable_ram_0_0_0.RESETMODE = "ASYNC" ;
     defparam colortable_ram_0_0_0.REGMODE = "NOREG" ;
     defparam colortable_ram_0_0_0.DATA_WIDTH_R = 36 ;
     defparam colortable_ram_0_0_0.DATA_WIDTH_W = 36 ;
-    PDPW16KD colortable_ram_0_0_0 (.DI35(scuba_vlo), .DI34(scuba_vlo), .DI33(scuba_vlo), 
-        .DI32(scuba_vlo), .DI31(Data[31]), .DI30(Data[30]), .DI29(Data[29]), 
-        .DI28(Data[28]), .DI27(Data[27]), .DI26(Data[26]), .DI25(Data[25]), 
-        .DI24(Data[24]), .DI23(Data[23]), .DI22(Data[22]), .DI21(Data[21]), 
-        .DI20(Data[20]), .DI19(Data[19]), .DI18(Data[18]), .DI17(Data[17]), 
-        .DI16(Data[16]), .DI15(Data[15]), .DI14(Data[14]), .DI13(Data[13]), 
-        .DI12(Data[12]), .DI11(Data[11]), .DI10(Data[10]), .DI9(Data[9]), 
-        .DI8(Data[8]), .DI7(Data[7]), .DI6(Data[6]), .DI5(Data[5]), .DI4(Data[4]), 
-        .DI3(Data[3]), .DI2(Data[2]), .DI1(Data[1]), .DI0(Data[0]), .ADW8(scuba_vlo), 
-        .ADW7(WrAddress[7]), .ADW6(WrAddress[6]), .ADW5(WrAddress[5]), .ADW4(WrAddress[4]), 
-        .ADW3(WrAddress[3]), .ADW2(WrAddress[2]), .ADW1(WrAddress[1]), .ADW0(WrAddress[0]), 
-        .BE3(ByteEn[3]), .BE2(ByteEn[2]), .BE1(ByteEn[1]), .BE0(ByteEn[0]), 
-        .CEW(WrClockEn), .CLKW(WrClock), .CSW2(scuba_vlo), .CSW1(scuba_vlo), 
-        .CSW0(WE), .ADR13(scuba_vlo), .ADR12(RdAddress[7]), .ADR11(RdAddress[6]), 
-        .ADR10(RdAddress[5]), .ADR9(RdAddress[4]), .ADR8(RdAddress[3]), 
-        .ADR7(RdAddress[2]), .ADR6(RdAddress[1]), .ADR5(RdAddress[0]), .ADR4(scuba_vlo), 
-        .ADR3(scuba_vlo), .ADR2(scuba_vlo), .ADR1(scuba_vlo), .ADR0(scuba_vlo), 
-        .CER(RdClockEn), .OCER(RdClockEn), .CLKR(RdClock), .CSR2(scuba_vlo), 
-        .CSR1(scuba_vlo), .CSR0(scuba_vlo), .RST(Reset), .DO35(Q[17]), .DO34(Q[16]), 
-        .DO33(Q[15]), .DO32(Q[14]), .DO31(Q[13]), .DO30(Q[12]), .DO29(Q[11]), 
-        .DO28(Q[10]), .DO27(Q[9]), .DO26(Q[8]), .DO25(Q[7]), .DO24(Q[6]), 
-        .DO23(Q[5]), .DO22(Q[4]), .DO21(Q[3]), .DO20(Q[2]), .DO19(Q[1]), 
-        .DO18(Q[0]), .DO17(), .DO16(), .DO15(), .DO14(), .DO13(Q[31]), .DO12(Q[30]), 
-        .DO11(Q[29]), .DO10(Q[28]), .DO9(Q[27]), .DO8(Q[26]), .DO7(Q[25]), 
-        .DO6(Q[24]), .DO5(Q[23]), .DO4(Q[22]), .DO3(Q[21]), .DO2(Q[20]), 
+    PDPW16KD colortable_ram_0_0_0 (.DI35(scuba_vlo), .DI34(scuba_vlo), .DI33(scuba_vlo),
+        .DI32(scuba_vlo), .DI31(Data[31]), .DI30(Data[30]), .DI29(Data[29]),
+        .DI28(Data[28]), .DI27(Data[27]), .DI26(Data[26]), .DI25(Data[25]),
+        .DI24(Data[24]), .DI23(Data[23]), .DI22(Data[22]), .DI21(Data[21]),
+        .DI20(Data[20]), .DI19(Data[19]), .DI18(Data[18]), .DI17(Data[17]),
+        .DI16(Data[16]), .DI15(Data[15]), .DI14(Data[14]), .DI13(Data[13]),
+        .DI12(Data[12]), .DI11(Data[11]), .DI10(Data[10]), .DI9(Data[9]),
+        .DI8(Data[8]), .DI7(Data[7]), .DI6(Data[6]), .DI5(Data[5]), .DI4(Data[4]),
+        .DI3(Data[3]), .DI2(Data[2]), .DI1(Data[1]), .DI0(Data[0]), .ADW8(scuba_vlo),
+        .ADW7(WrAddress[7]), .ADW6(WrAddress[6]), .ADW5(WrAddress[5]), .ADW4(WrAddress[4]),
+        .ADW3(WrAddress[3]), .ADW2(WrAddress[2]), .ADW1(WrAddress[1]), .ADW0(WrAddress[0]),
+        .BE3(ByteEn[3]), .BE2(ByteEn[2]), .BE1(ByteEn[1]), .BE0(ByteEn[0]),
+        .CEW(WrClockEn), .CLKW(WrClock), .CSW2(scuba_vlo), .CSW1(scuba_vlo),
+        .CSW0(WE), .ADR13(scuba_vlo), .ADR12(RdAddress[7]), .ADR11(RdAddress[6]),
+        .ADR10(RdAddress[5]), .ADR9(RdAddress[4]), .ADR8(RdAddress[3]),
+        .ADR7(RdAddress[2]), .ADR6(RdAddress[1]), .ADR5(RdAddress[0]), .ADR4(scuba_vlo),
+        .ADR3(scuba_vlo), .ADR2(scuba_vlo), .ADR1(scuba_vlo), .ADR0(scuba_vlo),
+        .CER(RdClockEn), .OCER(RdClockEn), .CLKR(RdClock), .CSR2(scuba_vlo),
+        .CSR1(scuba_vlo), .CSR0(scuba_vlo), .RST(Reset), .DO35(Q[17]), .DO34(Q[16]),
+        .DO33(Q[15]), .DO32(Q[14]), .DO31(Q[13]), .DO30(Q[12]), .DO29(Q[11]),
+        .DO28(Q[10]), .DO27(Q[9]), .DO26(Q[8]), .DO25(Q[7]), .DO24(Q[6]),
+        .DO23(Q[5]), .DO22(Q[4]), .DO21(Q[3]), .DO20(Q[2]), .DO19(Q[1]),
+        .DO18(Q[0]), .DO17(), .DO16(), .DO15(), .DO14(), .DO13(Q[31]), .DO12(Q[30]),
+        .DO11(Q[29]), .DO10(Q[28]), .DO9(Q[27]), .DO8(Q[26]), .DO7(Q[25]),
+        .DO6(Q[24]), .DO5(Q[23]), .DO4(Q[22]), .DO3(Q[21]), .DO2(Q[20]),
         .DO1(Q[19]), .DO0(Q[18]))
              /* synthesis MEM_LPC_FILE="colortable_ram.lpc" */
              /* synthesis MEM_INIT_FILE="INIT_ALL_0s" */;
