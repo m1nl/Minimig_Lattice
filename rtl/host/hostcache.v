@@ -1,7 +1,7 @@
 // Host cache
 // Direct-mapped, 128 cachelines x 4 words = 512 x 32-bit data (fits one DP16KD)
 // 16-bit SDRAM interface, 8-beat burst per cacheline fill
-// Cache index: a[10:4] (7 bits, 128 lines), word-in-line: a[3:2], tag: a[23:2] (22 bits)
+// Cache index: a[10:4] (7 bits, 128 lines), word-in-line: a[3:2], tag: a[23:9] (15 bits)
 // --------------------------------------------------------------------------------------
 // This implementation uses output register with tag RAM memory - address has to
 // be stable BEFORE req is asserted and has to stay stable until ack is received
