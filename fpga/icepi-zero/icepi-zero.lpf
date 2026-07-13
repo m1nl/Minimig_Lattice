@@ -296,9 +296,14 @@ BLOCK PATH TO PORT "led[*]";
 
 BLOCK PATH FROM CELL "virtual_top/mycfide/usbblock.u_usb_hid_host_0/typ[*]";
 BLOCK PATH FROM CELL "virtual_top/mycfide/usbblock.u_usb_hid_host_1/typ[*]";
+BLOCK PATH FROM CELL "virtual_top/minimig/overclock*";
 BLOCK PATH FROM CELL "virtual_top/minimig/ide_config*";
 BLOCK PATH FROM CELL "virtual_top/minimig/chipset_config*";
+BLOCK PATH FROM CELL "virtual_top/minimig/memory_config*";
 BLOCK PATH FROM CELL "virtual_top/minimig/cpu_config*";
+BLOCK PATH FROM CELL "virtual_top/minimig/CIAA1/regporta[0]";  # ovl
+BLOCK PATH FROM CELL "virtual_top/minimig/CIAA1/ddrporta[0]";  # ovl
+
 BLOCK PATH FROM CELL "virtual_top/minimig/AGNUS1/bc1/beamcon0*";
 
 BLOCK RESETPATHS ;
