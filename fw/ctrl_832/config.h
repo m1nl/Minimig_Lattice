@@ -76,10 +76,13 @@ extern configTYPE config;
 extern char DebugMode;
 extern char DebugMsg[128];
 
-#define DBG(...) do { if(DebugMode) { sprintf(DebugMsg, __VA_ARGS__); DebugMessage(DebugMsg); puts(DebugMsg); }} while (0)
+#define DBG(...) do { if(DebugMode) { snprintf(DebugMsg, sizeof(DebugMsg), __VA_ARGS__); DebugMessage(DebugMsg); puts(DebugMsg); }} while (0)
 #else
 #define DBG(...) do { } while (0)
 #endif
+
+#define ERR(...) do { printf(__VA_ARGS__); } while (0)
+#define INFO(...) do { printf(__VA_ARGS__); } while (0)
 
 int UploadKickstart(unsigned long dir,char *name);
 char UploadActionReplay();

@@ -187,7 +187,7 @@ void ReadTrack(adfTYPE *drive)
     	if(drive->track >= drive->tracks)
 		{
 			int unit=((int)drive - (int)&df[0])/sizeof(adfTYPE);
-		    printf("Illegal track read: %d\n", drive->track);
+		    ERR("Illegal track read: %d\n", drive->track);
 
 		    SetError(ERROR_FDD,"Read beyond disk end", drive->track,drive->tracks);
 //		    drive->track = drive->tracks - 1;
@@ -389,7 +389,7 @@ unsigned char GetHeader(unsigned int *pTrack, unsigned int *pSector)
             if (c1 != 0x44 || c2 != 0x89)
             {
 				FatalError(ERROR_FDD,"Second sync word missing...",21,0);
-                printf("\nSecond sync word missing...\n");
+                ERR("\nSecond sync word missing...\n");
                 break;
             }
 
@@ -439,7 +439,7 @@ unsigned char GetHeader(unsigned int *pTrack, unsigned int *pSector)
             if (error)
             {
 				FatalError(ERROR_FDD,"Bad header",error,0);
-                printf("\nWrong header: %u.%u.%u.%u\n", c1, c2, c3, c4);
+                ERR("\nWrong header: %u.%u.%u.%u\n", c1, c2, c3, c4);
                 break;
             }
 
@@ -679,7 +679,6 @@ void HandleFDD(unsigned char c1, unsigned char c2, unsigned char c3, unsigned ch
         DISKLED_ON;
         sel = (c1 >> 6) & 0x03;
         df[sel].track = c2;
-//        printf("Read track %d, unit %d\n",c2,sel);
         ReadTrack(&df[sel]);
         DISKLED_OFF;
     }

@@ -92,8 +92,8 @@ void SendFileV2(RAFile* file, unsigned char* key, int keysize, int address, int 
 	checksum_pre=0;
 
 
-	printf("File size: %dkB\n", size>>1);
-	printf("[");
+	INFO("File size: %dkB\n", size>>1);
+	INFO("[");
 	if (keysize) {
 		// read header
 		RARead(file, sector_buffer, 0xb);
@@ -101,7 +101,7 @@ void SendFileV2(RAFile* file, unsigned char* key, int keysize, int address, int 
 
 	for (i=0; i<size; i++) {
 		unsigned char *adr = (unsigned char *)(((address + i*512) & 0x7fffff) ^ HOSTMAP_ADDR);
-		if (!(i&31)) printf("*");
+		if (!(i&31)) INFO("*");
 		RARead(file, adr, 512);
 		if (keysize) {
 			// decrypt ROM
@@ -120,13 +120,13 @@ void SendFileV2(RAFile* file, unsigned char* key, int keysize, int address, int 
 		}
 
 	}
-	printf("]\n");
+	INFO("]\n");
 
 	if (kickfoundstr) {
-		printf(kickfoundstr);
+		INFO(kickfoundstr);
 	}
 	if (applypatchstr) {
-		printf(applypatchstr);
+		INFO(applypatchstr);
 	}
 }
 
@@ -199,7 +199,7 @@ unsigned char GetFPGAStatus(void)
 void fpga_init() {
 	unsigned long time = GetTimer(0);
 	int ver_beta,ver_major,ver_minor,ver_minion;
-	char rtl_ver[45];
+	char rtl_ver[128];
 	int rstval;
 
 	EnableOsd();
@@ -219,10 +219,10 @@ void fpga_init() {
 
 	BootHome();
 
-	sprintf(rtl_ver, "Minimig AGA%s version 20%d-%d-%d for Turbo Chameleon 64", ver_beta ? " BETA" : "",
+	snprintf(rtl_ver, 128, "Minimig AGA%s version 20%d-%d-%d for Turbo Chameleon 64", ver_beta ? " BETA" : "",
 		ver_major, ver_minor, ver_minion);
 	BootPrintEx(rtl_ver);
-	sprintf(rtl_ver, "Firmware version: %s",MM_FIRMWARE_VERSION);
+	snprintf(rtl_ver, 128, "Firmware version: %s",MM_FIRMWARE_VERSION);
 	BootPrintEx(rtl_ver);
 	BootPrintEx(" ");
 	BootPrintEx("Minimig AGA by Rok Krajnc.  Original Minimig by Dennis van Weeren");

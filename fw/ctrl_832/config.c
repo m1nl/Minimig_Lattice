@@ -35,7 +35,7 @@ static char filename[12];
 void ClearKickstartMirrorE0(void)
 {
 	int i;
-	int *p=(0xe00000 & 0x7fffff) ^ HOSTMAP_ADDR;
+	int *p=(int *)((0xe00000 & 0x7fffff) ^ HOSTMAP_ADDR);
 	for (i = 0; i < (0x80000 / 4); i++) {
 		*p++=0;
 	}
@@ -44,7 +44,7 @@ void ClearKickstartMirrorE0(void)
 void ClearVectorTable(void)
 {
 	int i;
-	int *p=0 ^ HOSTMAP_ADDR;
+	int *p=(int *)(0 ^ HOSTMAP_ADDR);
 	for (i = 0; i < 256; i++) {
 		*p++=0;
 	}
@@ -61,7 +61,7 @@ int UploadKickstart(unsigned long dir,char *name)
 	strncpy(filename, name, 8); // copy base name
 	strcpy(&filename[8], "ROM"); // add extension
 
-	printf("ROM dir: %d\n",dir);
+	INFO("ROM dir: %d\n",dir);
 
 	if(!ValidateDirectory(dir))
 	{
@@ -176,7 +176,7 @@ char UploadActionReplay()
 	if (RAOpen(&romfile, "HRTMON  ROM")) {
 		unsigned char *adr;
 		int data;
-		printf("Uploading HRTmon ROM... ");
+		INFO("Uploading HRTmon ROM... ");
 		SendFileV2(&romfile, NULL, 0, 0xa10000, (romfile.file.size+511)>>9);
 
 		// HRTmon config
@@ -223,7 +223,7 @@ char UploadActionReplay()
 void SetConfigurationFilename(int config)
 {
 	if(config)
-		sprintf(configfilename,"MINMGAA%dCFG",config);
+		snprintf(configfilename,sizeof(configfilename),"MINMGAA%dCFG",config);
 	else
 		strcpy(configfilename,"MINMGAA CFG");
 }
@@ -295,7 +295,7 @@ unsigned char LoadConfiguration(fileTYPE *cfgfile)
     {
 		configTYPE *tmpconf=(configTYPE *)&sector_buffer;
 		BootPrint("Opened configuration file\n");
-        printf("Configuration file size: %lu\n", cfgfile->size);
+        INFO("Configuration file size: %lu\n", cfgfile->size);
         if (cfgfile->size <= sizeof(config))
         {
             FileRead(cfgfile, sector_buffer);
@@ -393,7 +393,7 @@ int ApplyConfiguration(char reloadkickstart, char applydrives, char ignoreovercl
 	int romsize=0;
 	int unit;
 	char s[40];
-//	printf("c1: %x\n",CheckSum());
+//	INFO("c1: %x\n",CheckSum());
 
 	// Whether or not we uploaded a kickstart image we now need to set various parameters from the config.
 
@@ -403,30 +403,30 @@ int ApplyConfiguration(char reloadkickstart, char applydrives, char ignoreovercl
 		{
 			if(OpenHardfile(unit))
 			{
-			//		printf("c2: %x\n",CheckSum());
+			//		INFO("c2: %x\n",CheckSum());
 				switch(hdf[unit].type) // Customise message for SD card access
 				{
 					case (HDF_FILE | HDF_SYNTHRDB):
-						sprintf(s, "\nHardfile 0 (with fake RDB): %.8s.%.3s", hdf[unit].file.name, &hdf[unit].file.name[8]);
+						snprintf(s, 32, "\nHardfile 0 (with fake RDB): %.8s.%.3s", hdf[unit].file.name, &hdf[unit].file.name[8]);
 						break;
 					case HDF_FILE:
-						sprintf(s, "\nHardfile 0: %.8s.%.3s", hdf[unit].file.name, &hdf[unit].file.name[8]);
+						snprintf(s, 32, "\nHardfile 0: %.8s.%.3s", hdf[unit].file.name, &hdf[unit].file.name[8]);
 						break;
 					case HDF_CARD:
-						sprintf(s, "\nHardfile 0: using entire SD card");
+						snprintf(s, 32, "\nHardfile 0: using entire SD card");
 						break;
 					default:
-						sprintf(s, "\nHardfile 0: using SD card partition %d",hdf[unit].type-HDF_CARD);	// Number from 1
+						snprintf(s, 32, "\nHardfile 0: using SD card partition %d",hdf[unit].type-HDF_CARD);	// Number from 1
 						break;
 				}
 				BootPrint(s);
-				sprintf(s, "CHS: %u.%u.%u", hdf[unit].cylinders, hdf[unit].heads, hdf[unit].sectors);
+				snprintf(s, 32, "CHS: %u.%u.%u", hdf[unit].cylinders, hdf[unit].heads, hdf[unit].sectors);
 				BootPrint(s);
-				sprintf(s, "Size: %lu MB", ((((unsigned long) hdf[unit].cylinders) * hdf[unit].heads * hdf[unit].sectors) >> 11));
+				snprintf(s, 32, "Size: %lu MB", ((((unsigned long) hdf[unit].cylinders) * hdf[unit].heads * hdf[unit].sectors) >> 11));
 				BootPrint(s);
-				sprintf(s, "Offset: %ld", hdf[unit].offset);
+				snprintf(s, 32, "Offset: %ld", hdf[unit].offset);
 				BootPrint(s);
-			//		printf("c3: %x\n",CheckSum());
+			//		INFO("c3: %x\n",CheckSum());
 			}
 		}
 		ConfigIDE(config.enable_ide&1, config.hardfile[0].present && config.hardfile[0].enabled,
@@ -509,29 +509,29 @@ unsigned char SaveConfiguration(fileTYPE *cfgfile)
     else
     {
 		ClearError(ERROR_FILESYSTEM);
-        printf("Configuration file not found!\n");
-        printf("Trying to create a new one...\n");
+        INFO("Configuration file not found!\n");
+        INFO("Trying to create a new one...\n");
         strncpy(file.name, configfilename, 11);
         file.attributes = 0;
         file.size = sizeof(config);
-        printf("Config size is %x (%x) - address is %x\n",sizeof(config),file.size,&config);
+        INFO("Config size is %x (%x) - address is %x\n",sizeof(config),file.size,&config);
         if (FileCreate(0, &file))
         {
-            printf("File created.\n");
-            printf("Trying to write new data...\n");
+            INFO("File created.\n");
+            INFO("Trying to write new data...\n");
             memset((void*)sector_buffer, 0, sizeof(sector_buffer));
             memcpy((void*)sector_buffer, (void*)&config, sizeof(config));
 
             if (FileWrite(&file, sector_buffer))
             {
-                printf("File written successfully.\n");
+                INFO("File written successfully.\n");
                 return(1);
             }
             else
-                printf("File write failed!\n");
+                ERR("File write failed!\n");
         }
         else
-            printf("File creation failed!\n");
+            ERR("File creation failed!\n");
     }
     return(0);
 }

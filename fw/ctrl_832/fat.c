@@ -46,10 +46,8 @@ JB:
 #include "fat.h"
 #include "swap.h"
 #include "hexdump.h"
-// #include "small_printf.h"
-
-
-#define DEBUG 0
+#include "config.h"
+// #include "small_DBG.h"
 
 int tolower(int c);
 
@@ -103,16 +101,6 @@ void SwapPartitionBytes(int i)
 	partitions[i].sectors=SwapBBBB(partitions[i].sectors);
 }
 
-extern char BootPrint(const char *s);
-void bprintfl(const char *fmt,unsigned long l)
-{
-	char s[64];
-	sprintf(s,fmt,l);
-	if(DEBUG)
-		BootPrint(s);
-}
-
-
 // FindDrive() checks if a card is present and contains FAT formatted primary partition
 unsigned int FindDrive(void)
 {
@@ -137,8 +125,7 @@ unsigned int FindDrive(void)
 	{
 		// We have at least one partition, parse the MBR.
 		struct MasterBootRecord *mbr=(struct MasterBootRecord *)sector_buffer;
-		if(DEBUG)
-			BootPrint("Copying partitions");
+		DBG("Copying partitions");
 		memcpy(&partitions[0],&mbr->Partition[0],sizeof(struct PartitionEntry));
 		memcpy(&partitions[1],&mbr->Partition[1],sizeof(struct PartitionEntry));
 		memcpy(&partitions[2],&mbr->Partition[2],sizeof(struct PartitionEntry));
@@ -147,8 +134,7 @@ unsigned int FindDrive(void)
 		switch(mbr->Signature)
 		{
 			case 0x55aa:	// Little-endian MBR on a big-endian system
-				if(DEBUG)
-					BootPrint("Swapping byte order of partition entries");
+				DBG("Swapping byte order of partition entries");
 				SwapPartitionBytes(0);
 				SwapPartitionBytes(1);
 				SwapPartitionBytes(2);
@@ -157,27 +143,25 @@ unsigned int FindDrive(void)
 			case 0xaa55:
 				// get start of first partition
 				boot_sector = partitions[0].startlba;
-				bprintfl("Start: %ld\n",partitions[0].startlba);
+				DBG("Start: %ld\n",partitions[0].startlba);
 				for(partitioncount=4;(partitions[partitioncount-1].sectors==0) && (partitioncount>1); --partitioncount)
 					;
-				bprintfl("PartitionCount: %ld\n",partitioncount);
+				DBG("PartitionCount: %ld\n",partitioncount);
 				int i;
 				for(i=0;i<partitioncount;++i)
 				{
-					bprintfl("Partition: %ld",i);
-					bprintfl("  Start: %ld",partitions[i].startlba);
-					bprintfl("  Size: %ld\n",partitions[i].sectors);
+					DBG("Partition: %ld",i);
+					DBG("  Start: %ld",partitions[i].startlba);
+					DBG("  Size: %ld\n",partitions[i].sectors);
 				}
 //				WaitTimer(5000);
 				if (!MMC_Read(boot_sector, sector_buffer)) // read discriptor
 				    return(0);
-				if(DEBUG)
-					BootPrint("Read boot sector from first partition\n");
+				DBG("Read boot sector from first partition\n");
 				break;
 			default:
 				SetError(ERROR_FILESYSTEM,"No partition signature found",mbr->Signature,0);
-				if(DEBUG)
-					BootPrintEx("No partition signature found\n");
+				ERR("No partition signature found\n");
 				break;
 		}
 	}
@@ -188,32 +172,31 @@ unsigned int FindDrive(void)
     if (strncmp((const char*)&sector_buffer[0x52], "FAT32   ", 8)==0) // check for FAT32
 		fattype = 32;
 	
-    printf("partition type: 0x%02X (", sector_buffer[450]);
+    DBG("partition type: 0x%02X (", sector_buffer[450]);
     switch (fattype)
     {
 		case 0:
-		    printf("NONE");
+		    DBG("NONE");
 		    break;
 		case 12:
-		    printf("FAT12");
+		    DBG("FAT12");
 		    break;
 		case 16:
-		    printf("FAT16");
+		    DBG("FAT16");
 		    break;
 		case 32:
-		    printf("FAT32");
+		    DBG("FAT32");
 		    fat32 = 1;
 		    break;
 		default:
-		    printf("UNKNOWN");
+		    DBG("UNKNOWN");
 		    break;
     }
-    printf(")\r");
+    DBG(")\r");
 
     if (fattype != 32 && fattype != 16) // first partition filesystem type: FAT16 or FAT32
     {
 		FatalError(ERROR_FILESYSTEM,"Unsupported partition type",fattype,0);
-//        BootPrintEx("Unsupported partition type!");
         return(0);
     }
 
@@ -293,17 +276,14 @@ unsigned int FindDrive(void)
 
 
     // some debug output
-	if(DEBUG)
-	{
-		printf("fat_size: %lu\r", fat_size);
-		printf("fat_number: %u\r", fat_number);
-		printf("fat_start: %lu\r", fat_start);
-		printf("root_directory_start: %lu\r", root_directory_start);
-		printf("dir_entries: %u\r", dir_entries);
-		printf("data_start: %lu\r", data_start);
-		printf("cluster_size: %u\r", cluster_size);
-		printf("cluster_mask: %08lX\r", cluster_mask);
-	}
+    DBG("fat_size: %lu\r", fat_size);
+    DBG("fat_number: %u\r", fat_number);
+    DBG("fat_start: %lu\r", fat_start);
+    DBG("root_directory_start: %lu\r", root_directory_start);
+    DBG("dir_entries: %u\r", dir_entries);
+    DBG("data_start: %lu\r", data_start);
+    DBG("cluster_size: %u\r", cluster_size);
+    DBG("cluster_mask: %08lX\r", cluster_mask);
 
     return(1);
 }
@@ -380,7 +360,7 @@ unsigned int FileOpen(fileTYPE *file, const char *name)
             {
 				if(doLFN(pEntry,fileLFN))
 				{
-//					printf("Have long filename entry\n");
+//					DBG("Have long filename entry\n");
 				}
                 else if (!(pEntry->Attributes & (ATTR_VOLUME | ATTR_DIRECTORY))) // not a volume nor directory
                 {
@@ -399,7 +379,7 @@ unsigned int FileOpen(fileTYPE *file, const char *name)
                         file->entry.sector = iDirectorySector - 1;
                         file->entry.index = iEntry & 0x0F;
 
-                        printf("file \"%s\" found\r", name);
+                        DBG("file \"%s\" found\r", name);
 
                         return(1);
                     }
@@ -424,7 +404,7 @@ unsigned int FileOpen(fileTYPE *file, const char *name)
 
 	SetError(ERROR_FILESYSTEM,"File not found",0,0);
 
-    printf("file \"%s\" not found\r", name);
+    DBG("file \"%s\" not found\r", name);
     memset(file, 0, sizeof(fileTYPE));
     return(0);
 }
@@ -463,7 +443,7 @@ int ValidateDirectory(unsigned long directory)
                 if (strncmp((const char*)pEntry->Name, "..         ", sizeof(pEntry->Name)) == 0)
                 {
 					unsigned long parent=SwapBB(pEntry->StartCluster) + (fat32 ? (SwapBB(pEntry->HighCluster) & 0x0FFF) << 16 : 0);
-                    printf("Parent directory is %ld \r",parent);
+                    DBG("Parent directory is %ld \r",parent);
                     return(ValidateDirectory(parent) && FindDirectoryByCluster(parent,directory));
                 }
             }
@@ -517,7 +497,7 @@ unsigned long FindDirectoryByCluster(unsigned long parent, unsigned long cluster
 					unsigned long dircluster=SwapBB(pEntry->StartCluster) + (fat32 ? (SwapBB(pEntry->HighCluster) & 0x0FFF) << 16 : 0);
 					if(dircluster==cluster)
 					{
-                        printf("Found directory at %ld \r",dircluster);
+                        DBG("Found directory at %ld \r",dircluster);
                         return(1);
                     }
                 }
@@ -537,7 +517,7 @@ unsigned long FindDirectoryByCluster(unsigned long parent, unsigned long cluster
             break;
     }
 
-    printf("Directory not found at %ld\r",cluster);
+    DBG("Directory not found at %ld\r",cluster);
     return(0);
 }
 
@@ -586,7 +566,7 @@ unsigned long FindDirectory(unsigned long parent, const char *name)
                     if (strncmp((const char*)pEntry->Name, name, sizeof(pEntry->Name)) == 0)
                     {
 						unsigned long dircluster=SwapBB(pEntry->StartCluster) + (fat32 ? (SwapBB(pEntry->HighCluster) & 0x0FFF) << 16 : 0);
-                        printf("Found directory \"%s\" at %ld \r",name,dircluster);
+                        DBG("Found directory \"%s\" at %ld \r",name,dircluster);
 
                         return(dircluster);
                     }
@@ -607,7 +587,7 @@ unsigned long FindDirectory(unsigned long parent, const char *name)
             break;
     }
 
-    printf("Directory \"%s\" not found\r", name);
+    DBG("Directory \"%s\" not found\r", name);
     return(0);
 }
 
@@ -772,14 +752,14 @@ int ScanDirectory(unsigned long mode, char *extension, unsigned char options)
 
     if (iCurrentDirectory) // subdirectory
     {
-		printf("Scanning directory %x\n",iCurrentDirectory);
+        DBG("Scanning directory %x\n",iCurrentDirectory);
         iDirectoryCluster = iCurrentDirectory;
         iDirectorySector = data_start + cluster_size * (iDirectoryCluster - 2);
         nEntries = cluster_size << 4; // 16 entries per sector
     }
     else // root directory
     {
-		printf("Scanning root directory %x\n",root_directory_cluster);
+        DBG("Scanning root directory %x\n",root_directory_cluster);
         iDirectoryCluster = root_directory_cluster;
         iDirectorySector = root_directory_start;
         nEntries = fat32 ?  cluster_size << 4 : root_directory_size << 4; // 16 entries per sector
@@ -847,12 +827,12 @@ int ScanDirectory(unsigned long mode, char *extension, unsigned char options)
 
                             if (sequence_number & 0x40) // last lfn part
                                 *ptr++ = 0;
-//							printf("Long filename: %s\n",&lfn[((sequence_number & 0x1F) - 1) * 13]);
+//							DBG("Long filename: %s\n",&lfn[((sequence_number & 0x1F) - 1) * 13]);
                         }
                         else
 						{
 							SetError(ERROR_FILESYSTEM,"bad long filename",sequence_number,name_checksum);
-                            printf("LFN error!\r");
+							ERR("LFN error!\r");
 						}
                     }
                 }
@@ -1228,14 +1208,14 @@ int ScanDirectory(unsigned long mode, char *extension, unsigned char options)
         if (iCurrentDirectory || fat32) // subdirectory is a linked cluster chain
         {
             iDirectoryCluster = GetFATLink(iDirectoryCluster); // get next cluster in chain
-//			printf("iDirectoryCluster: %x\n",iDirectoryCluster);
+//			DBG("iDirectoryCluster: %x\n",iDirectoryCluster);
 			// check if end of chain
             if (fat32 ? (iDirectoryCluster & 0x0FFFFFF8) == 0x0FFFFFF8 : (iDirectoryCluster & 0xFFF8) == 0xFFF8)
                 break; // no more clusters in chain
 
 			// calculate first sector address of the new cluster
             iDirectorySector = data_start + cluster_size * (iDirectoryCluster - 2);
-//			printf("New directory sector: %x\n",iDirectorySector);
+//			DBG("New directory sector: %x\n",iDirectorySector);
         }
         else
             break;
@@ -1309,7 +1289,7 @@ int ScanDirectory(unsigned long mode, char *extension, unsigned char options)
     }
     /*
     time = GetTimer(0) - time;
-    printf("ScanDirectory(): %lu ms\r", time >> 20);
+    DBG("ScanDirectory(): %lu ms\r", time >> 20);
     */
     return rc;
 }
@@ -1579,7 +1559,7 @@ unsigned int FileCreate(unsigned long iDirectory, fileTYPE *file)
 
             if (pEntry->Name[0] == SLOT_EMPTY)
             {
-                printf("Empty entry found in sector %lu at index %lu\r", iDirectorySector-1, iEntry&0x0F);
+                DBG("Empty entry found in sector %lu at index %lu\r", iDirectorySector-1, iEntry&0x0F);
 
                 // free cluster is marked as 0x0000
                 // last cluster in chain is 0xFFFF
@@ -1592,7 +1572,7 @@ unsigned int FileCreate(unsigned long iDirectory, fileTYPE *file)
                     {
                         if (!MMC_Read(fat_start + fat_index, (unsigned char*)&fat_buffer))
                         {
-                            printf("FileCreate(): FAT read failed!\r");
+                            ERR("FileCreate(): FAT read failed!\r");
                             return(0);
                         }
                         // remember current buffer index
@@ -1607,7 +1587,7 @@ unsigned int FileCreate(unsigned long iDirectory, fileTYPE *file)
                         {   // empty cluster found
                             unsigned long cluster = (fat_index << (fat32 ? 7 : 8)) + buffer_index;  // calculate cluster number
 
-                            printf("Empty cluster: %lu\r", cluster);
+                            DBG("Empty cluster: %lu\r", cluster);
 
                             // mark cluster as used
                             if (fat32)
@@ -1619,7 +1599,7 @@ unsigned int FileCreate(unsigned long iDirectory, fileTYPE *file)
                             // store FAT sector
                             if (!MMC_Write(fat_start + fat_index, (unsigned char*)&fat_buffer))
                             {
-                                printf("FileCreate(): FAT write failed!\r");
+                                ERR("FileCreate(): FAT write failed!\r");
                                 return(0);
                             }
 
@@ -1629,7 +1609,7 @@ unsigned int FileCreate(unsigned long iDirectory, fileTYPE *file)
                             {
                                 if (!MMC_Write(fat_start + (i * fat_size) + fat_index, (unsigned char*)&fat_buffer))
                                 {
-                                    printf("FileCreate(): FAT copy #%lu write failed!\r", i);
+                                    ERR("FileCreate(): FAT copy #%lu write failed!\r", i);
                                     return(0);
                                 }
                             }
@@ -1645,14 +1625,14 @@ unsigned int FileCreate(unsigned long iDirectory, fileTYPE *file)
                             pEntry->ModifyTime = SwapBB(FILETIME(0, 0, 0));
                             pEntry->StartCluster = (unsigned short)SwapBB(cluster); // for 68000
                             pEntry->HighCluster = fat32 ? (unsigned short)SwapBB(cluster >> 16) : 0; // for 68000
-							printf("FileCreate() filesize (before endian swap) is %lx\n",file->size);
+                            DBG("FileCreate() filesize (before endian swap) is %lx\n",file->size);
                             pEntry->FileSize = SwapBBBB(file->size); // for 68000
-							printf("FileCreate() filesize (after endian swap) is %lx\n",pEntry->FileSize);
+                            DBG("FileCreate() filesize (after endian swap) is %lx\n",pEntry->FileSize);
 
                             // store dir entry
                             if (!MMC_Write(iDirectorySector - 1, sector_buffer))
                             {
-                                printf("FileCreate(): directory write failed!\r");
+                                ERR("FileCreate(): directory write failed!\r");
                                 return(0);
                             }
 
@@ -1700,7 +1680,7 @@ unsigned int UpdateEntry(fileTYPE *file)
 
     if (!MMC_Read(file->entry.sector, sector_buffer))
     {
-        printf("UpdateEntry(): directory read failed!\r");
+        ERR("UpdateEntry(): directory read failed!\r");
         return(0);
     }
 
@@ -1711,10 +1691,10 @@ unsigned int UpdateEntry(fileTYPE *file)
 
     if ((SwapBBBB(pEntry->FileSize) + cluster_size - 1) / (cluster_size << 9) != (file->size + cluster_size - 1) / (cluster_size << 9))
     {
-        printf("UpdateEntry(): different number of clusters!\r");
-        printf("pEntry->FileSize = %lu\r", SwapBBBB(pEntry->FileSize));
-        printf("file->size = %lu\r", file->size);
-        printf("cluster_size = %u\r", cluster_size);
+        ERR("UpdateEntry(): different number of clusters!\r");
+        DBG("pEntry->FileSize = %lu\r", SwapBBBB(pEntry->FileSize));
+        DBG("file->size = %lu\r", file->size);
+        DBG("cluster_size = %u\r", cluster_size);
         return(0);
     }
 
@@ -1722,7 +1702,7 @@ unsigned int UpdateEntry(fileTYPE *file)
 
     if (!MMC_Write(file->entry.sector, sector_buffer))
     {
-        printf("UpdateEntry(): directory write failed!\r");
+        ERR("UpdateEntry(): directory write failed!\r");
         return(0);
     }
 

@@ -147,7 +147,7 @@ void ColdBoot() {
 	fpga_init();	// Display splashscreen
 
 	key = OsdGetCtrl();
-	sprintf(s,"Got key: %x\n",key);
+	snprintf(s,32,"Got key: %x\n",key);
 	BootPrint(s);
 	if ((key == KEY_F1) || (key == KEY_F3) || (key == KEY_F5))
 	{

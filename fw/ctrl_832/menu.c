@@ -513,11 +513,11 @@ void HandleUI(void)
 		menumask=0x0f;
  		OsdSetTitle("Floppy",0);
         OsdWrite(0, "", 0,0);
-		sprintf(s," Floppy drives : %d",config.floppy.drives+1);
+		snprintf(s, 32," Floppy drives : %d",config.floppy.drives+1);
         OsdWrite(1, s, menusub==0,0);
-		sprintf(s," Floppy disk turbo : %s",config.floppy.speed ? "on" : "off");
+		snprintf(s, 32, " Floppy disk turbo : %s",config.floppy.speed ? "on" : "off");
         OsdWrite(2, s, menusub==1,0);
-		sprintf(s," Floppy disk sounds : %s",config.drivesounds&DRIVESOUNDS_FLOPPY ? "on" : "off");
+		snprintf(s, 32, " Floppy disk sounds : %s",config.drivesounds&DRIVESOUNDS_FLOPPY ? "on" : "off");
         OsdWrite(3, s, menusub==2,!drivesounds_loaded());
 		if(!drivesounds_loaded())
 			menumask&=0xb;
@@ -1122,19 +1122,19 @@ void HandleUI(void)
  		OsdSetTitle("Save",0);
 
 		SetConfigurationFilename(0);
-		sprintf(s,"    Default %s",ConfigurationExists(0) ? "(overwrite)" : "");
+		snprintf(s, 32, "    Default %s",ConfigurationExists(0) ? "(overwrite)" : "");
         OsdWrite(0, s, menusub == 0,0);
 		SetConfigurationFilename(1);
-		sprintf(s,"          1 %s",ConfigurationExists(0) ? "(overwrite)" : "");
+		snprintf(s, 32, "          1 %s",ConfigurationExists(0) ? "(overwrite)" : "");
         OsdWrite(1, s, menusub == 1,0);
 		SetConfigurationFilename(2);
-		sprintf(s,"          2 %s",ConfigurationExists(0) ? "(overwrite)" : "");
+		snprintf(s, 32, "          2 %s",ConfigurationExists(0) ? "(overwrite)" : "");
         OsdWrite(2, s, menusub == 2,0);
 		SetConfigurationFilename(3);
-		sprintf(s,"          3 %s",ConfigurationExists(0) ? "(overwrite)" : "");
+		snprintf(s, 32, "          3 %s",ConfigurationExists(0) ? "(overwrite)" : "");
         OsdWrite(3, s, menusub == 3,0);
 		SetConfigurationFilename(4);
-		sprintf(s,"          4 %s",ConfigurationExists(0) ? "(overwrite)" : "");
+		snprintf(s, 32, "          4 %s",ConfigurationExists(0) ? "(overwrite)" : "");
         OsdWrite(4, s, menusub == 4,0);
         OsdWrite(5, "     Other \x16", menusub==5, 0);
         OsdWrite(6, "", 0,0);

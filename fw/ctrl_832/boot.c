@@ -122,7 +122,7 @@ static const char boot_font [96][8] = {
 
 
 //// BootClearScreen() ////
-void BootClearScreen(unsigned short *adr, int size)
+static inline void BootClearScreen(unsigned short *adr, int size)
 {
 	int i;
 	adr=(unsigned short *)(((int)adr & 0x7fffff) ^ HOSTMAP_ADDR);
