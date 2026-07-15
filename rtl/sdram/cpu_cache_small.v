@@ -475,9 +475,9 @@ always @ (posedge clk) begin
           // data is already in instruction cache way 0
           cpu_sm_itag_we <= #1 1'b1;
           cpu_sm_tag_dat_w <= #1 {1'b0, itram_cpu_dat_r[30:0]};
-          cpu_dat_r<=cpu_adr_l[1] ? idram0_cpu_dat_r[31:16] : idram0_cpu_dat_r[15:0];
+          cpu_dat_r<=cpu_adr[1] ? idram0_cpu_dat_r[31:16] : idram0_cpu_dat_r[15:0];
           last_pair_i <= #1 idram0_cpu_dat_r;
-          last_pair_adr_i <= #1 cpu_adr_l[25:2];
+          last_pair_adr_i <= #1 cpu_adr[25:2];
           last_pair_valid_i <= #1 1'b1;
           cpu_cache_ack <= #1 1'b1;
 
@@ -485,9 +485,9 @@ always @ (posedge clk) begin
           // data is already in instruction cache way 1
           cpu_sm_itag_we <= #1 1'b1;
           cpu_sm_tag_dat_w <= #1 {1'b1, itram_cpu_dat_r[30:0]};
-          cpu_dat_r<=cpu_adr_l[1] ? idram1_cpu_dat_r[31:16] : idram1_cpu_dat_r[15:0];
+          cpu_dat_r<=cpu_adr[1] ? idram1_cpu_dat_r[31:16] : idram1_cpu_dat_r[15:0];
           last_pair_i <= #1 idram1_cpu_dat_r;
-          last_pair_adr_i <= #1 cpu_adr_l[25:2];
+          last_pair_adr_i <= #1 cpu_adr[25:2];
           last_pair_valid_i <= #1 1'b1;
           cpu_cache_ack <= #1 1'b1;
 
@@ -495,9 +495,9 @@ always @ (posedge clk) begin
           // data is already in data cache way 0
           cpu_sm_dtag_we <= #1 1'b1;
           cpu_sm_tag_dat_w <= #1 {1'b0, dtram_cpu_dat_r[30:0]};
-          cpu_dat_r<=cpu_adr_l[1] ? ddram0_cpu_dat_r[31:16] : ddram0_cpu_dat_r[15:0];
+          cpu_dat_r<=cpu_adr[1] ? ddram0_cpu_dat_r[31:16] : ddram0_cpu_dat_r[15:0];
           last_pair_d <= #1 ddram0_cpu_dat_r;
-          last_pair_adr_d <= #1 cpu_adr_l[25:2];
+          last_pair_adr_d <= #1 cpu_adr[25:2];
           last_pair_valid_d <= #1 1'b1;
           cpu_cache_ack <= #1 1'b1;
 
@@ -505,9 +505,9 @@ always @ (posedge clk) begin
           // data is already in data cache way 1
           cpu_sm_dtag_we <= #1 1'b1;
           cpu_sm_tag_dat_w <= #1 {1'b1, dtram_cpu_dat_r[30:0]};
-          cpu_dat_r<=cpu_adr_l[1] ? ddram1_cpu_dat_r[31:16] : ddram1_cpu_dat_r[15:0];
+          cpu_dat_r<=cpu_adr[1] ? ddram1_cpu_dat_r[31:16] : ddram1_cpu_dat_r[15:0];
           last_pair_d <= #1 ddram1_cpu_dat_r;
-          last_pair_adr_d <= #1 cpu_adr_l[25:2];
+          last_pair_adr_d <= #1 cpu_adr[25:2];
           last_pair_valid_d <= #1 1'b1;
           cpu_cache_ack <= #1 1'b1;
 
@@ -525,7 +525,6 @@ always @ (posedge clk) begin
           end
         end
       end
-
       CPU_SM_WAIT : begin
         cpu_adr_blk_ptr <= #1 cpu_adr_blk;
         cpu_sm_adr <= #1 {cpu_adr_idx, cpu_adr_blk};
