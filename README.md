@@ -24,15 +24,73 @@ This minimig variant has been upgraded with [AGA chipset](http://en.wikipedia.or
 * peripherals : 2 x USB HID ports with FPGA USB controllers
 * has an implementation of the [Akiko](https://en.wikipedia.org/wiki/Amiga_custom_chips#Akiko) chunky to planar converter
 
+## USB support
+
+Please keep in mind that the board is FPGA-based, and the USB HID controller is implemented in gateware. There is no dedicated USB controller chip on the board itself. As a result, some USB HID devices may not be compatible with the board.
+
+I have tested the following devices and can confirm they work properly:
+- 8BitDo Pro 3 utilizing bundled 2.4G wireless dongle
+- 8BitDo Ultimate 2C wireless utilizing bundled 2.4G wireless dongle (non-Bluetooth version)
+- Logitech, Inc. Unifying Receiver w/ Y-R0012
+- Logitech, Inc. Unifying Receiver w/ K400r
+- SpeedLink COMPETITION PRO Extra USB Joystick
+- Legacy Logitech low-speed mouse
+- IBM Corp. NetVista Full Width Keyboard
+- Keychron C3 Pro
+- Keychron K2
+
+Not working:
+- 8BitDo 8BitDo Retro Keyboard Receiver (2dc8:5201)
+- 8BitDo 8BitDo Retro 87 Adapter X (2dc8:202e)
+
+The 8BitDo retro keyboard does not send report events even after successful enumeration. It appears the keyboard exposes two interfaces (mouse + keyboard), and both must be enumerated before reports start being received. There are also reports that this keyboard supports only NKRO and not 6KRO, despite BOOT protocol support (typically associated with 6KRO) being required by the HID standard. Further work may be done to add support for this keyboard, but no guarantees can be made given the extent of changes that may be required.
+
+Other low-speed and full-speed USB 2.0 HID devices should generally work as well. However, avoid composite devices that include built-in USB hub or keyboard + mouse functionality. Each port supports only a single device, as it has a separate USB soft controller attached to it.
+
 ## Usage
 
 ### Hardware
 
-To use this minimig core, you will at the minimum need an SD/SDHC card, formatted with the FAT32 filesystem, USB HID keyboard and a HDMI monitor / TV. You will probably want to attach a set of speakers or headphones, a real Amiga or USB mouse and a real Amiga joystick.
+To use this Minimig core, you will at the minimum need an SD/SDHC card, formatted with the FAT32 filesystem, USB HID keyboard / mouse and a HDMI monitor / TV.
 
-### Software
+### Installing from binary release
 
-To use the core, you will also need a Kickstart ROM image file, which you can obtain by copying Kickstart ROM IC from your actual Amiga, or by buying an [Amiga Forever](http://www.amigaforever.com/) software pack. The Kickstart image should be placed on the root of the SD card with the name KICK.ROM. Minimig also supports the [AROS](http://aros.sourceforge.net/) Kickstart ROM replacement.
+* download latest release from GitHub
+* copy `832OSDU0.bin` file to root directory of your SD card
+* flash bitstream to flash memory using openFPGALoader
+```
+$ openFPGALoader -b icepi-zero --write-flash fpga/icepi-zero/Minimig_IcePi-Zero/minimig_icepi-zero_Minimig_IcePi-Zero.bit
+```
+* alternatively, use web flasher available here http://ofl.trabucayre.com/ - Chrome works best, for Windows use Zadig (https://zadig.akeo.ie/) to install WinUSB driver
+* don't forget to place kickstart ROM of your choosing on the root of the SD card (these are still copyrighted, so either copy the ROM from your real Amiga, or buy AmigaForever)
+* place some ADF (floppy disk images) of your favourite games / demos / programs on your SD card
+* optionally place minimig.bal, minimig.art & minimig.cop files on the root of your SD card for a nice bootup animation
+* enjoy minimig! :)
+
+### Building minimig-mist from sources for IcePi Zero
+
+* checkout the source 
+* download / install [Lattice Diamond](https://www.latticesemi.com/en/Products/DesignSoftwareAndIP/FPGAandLDS/LatticeDiamond)
+* compile firmware and prepare boot ROM
+```
+$ git submodule update --init
+$ cd fw
+$ make
+```
+* copy `832OSDU0.bin` file to root directory of your SD card
+* build the core using Lattice Diamond GUI (project file in fpga/icepi-zero/)
+* flash bitstream to flash memory using openFPGALoader
+```
+$ openFPGALoader -b icepi-zero --write-flash fpga/icepi-zero/Minimig_IcePi-Zero/minimig_icepi-zero_Minimig_IcePi-Zero.bit
+```
+* don't forget to place kickstart ROM of your choosing on the root of the SD card (these are still copyrighted, so either copy the ROM from your real Amiga, or buy AmigaForever)
+* place some ADF (floppy disk images) of your favourite games / demos / programs on your SD card
+* optionally place minimig.bal, minimig.art & minimig.cop files on the root of your SD card for a nice bootup animation
+* enjoy minimig! :)
+
+### Additional remarks
+
+You will also need a Kickstart ROM image file, which you can obtain by copying Kickstart ROM IC from your actual Amiga, or by buying an [Amiga Forever](http://www.amigaforever.com/) software pack. The Kickstart image should be placed on the root of the SD card with the name KICK.ROM. Minimig also supports the [AROS](http://aros.sourceforge.net/) Kickstart ROM replacement.
 
 The minimig can read any ADF floppy images you place on the SD card. I recommend at least Workbench 1.3 or 3.1 (AmigaOS), some of the Amigas great games (I recommend Ruff'n'Tumble) or some of the amazing demos from the vast Amiga demoscene (like State of the Art from Spaceballs).
 
@@ -40,17 +98,23 @@ The minimig can also use HDF harddisk images, which can be created with [WinUAE]
 
 ### Recommended minimig config
 
-* for ECS games / demos : CPU = 68000, Turbo=NONE, Chipset=ECS, chipRAM=0.5MB, slowRAM=0.5MB, Kickstart 1.3
-* for AGA games / demos : CPU = 68020, Turbo=NONE, Chipset=AGA, chipRAM=2MB, slowRAM=0MB, fastRAM=24MB, Kickstart 3.1
-For Workbench usage, you can try turning TURBO=BOTH for a little speed increase.
+* for ECS games / demos : CPU=68000, Turbo=NONE, Chipset=ECS, chipRAM=0.5MB, slowRAM=0.5MB, Kickstart 1.3
+* for A1200-era AGA games / demos : CPU=68020, Turbo=NONE, Chipset=AGA, chipRAM=2MB, slowRAM=0MB, fastRAM=2MB or more, Kickstart 3.1
+* for modern AGA games / demos (Outrun port by Reassembler / DoomAttack) : CPU=68020, Chipset=AGA, chipRAM=2MB, slowRAM=0MB, fastRAM=FULL, Turbo=FULL, Overclock=ON, Kickstart 3.1
+
+For Workbench usage, you can try turning TURBO=FULL for a speed increase.
+
+### Notes regarding games compatiblity
+
+* Pinball Fantasies AGA - use CPU=68020, Chipset=AGA, chipRAM=2MB and fastRAM=2MB, Kickstart 3.1 ; with more fastRAM, it hangs
 
 ### Controlling minimig
 
 Keyboard special keys:
 
-* F12         - OSD menu
-* F11         - start monitor (HRTmon) if HRTmon is enabled in OSD menu (otherwise F11 is the Amiga HELP key)
-* ScrollLock  - toggle keyoard only / mouse / joystick 1 / joystick 2 emulation on the keyboard (direction keys + LCTRL)
+* F12 - OSD menu
+* Hold Windows key and direction keys - move mouse (Workbench only)
+* Hold Windows key and press left ALT - left mouse click (Workbench only)
 
 ## Links & more info
 
@@ -78,7 +142,6 @@ This project contains code written by:
 
 All code is copyright © 2005 - 2026 and the property of its respective authors.
 
-
 ## License
 
 This program is free software: you can redistribute it and/or modify
@@ -93,26 +156,6 @@ GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
-## Building minimig-mist from sources for IcePi Zero
-
-* checkout the source 
-* download / install [Lattice Diamond](https://www.latticesemi.com/en/Products/DesignSoftwareAndIP/FPGAandLDS/LatticeDiamond)
-* compile firmware and prepare boot ROM
-```
-$ git submodule update --init
-$ cd fw
-$ make
-```
-* build the core using Lattice Diamond GUI (project file in fpga/icepi-zero/)
-* flash bitstream to flash memory using openFPGALoader
-```
-$ openFPGALoader -b icepi-zero --write-flash fpga/icepi-zero/Minimig_IcePi-Zero/minimig_icepi-zero_Minimig_IcePi-Zero.bit
-```
-* don't forget to place kickstart ROM of your choosing on the root of the SD card (these are still copyrighted, so either copy the ROM from your real Amiga, or buy AmigaForever)
-* place some ADF (floppy disk images) of your favourite games / demos / programs on your SD card
-* optionally place minimig.bal, minimig.art & minimig.cop files on the root of your SD card for a nice bootup animation
-* enjoy minimig! :)
 
 ## Sources
 
